@@ -7,11 +7,11 @@ interface ifidpipe_if;
 
   import cpu_types_pkg::*;
 
-  logic ifiden, ifidflush, ihit;
+  logic ifiden, flush, en;
   word_t instr, npc;
 
   modport instr_f (
-    input instr, npc, ihit
+    input instr, npc, en, flush
   );
 
   modport id (

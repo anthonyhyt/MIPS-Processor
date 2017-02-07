@@ -12,7 +12,7 @@ interface mmwbpipe_if;
   //control signal
   opfunc_t opfunc;
   memtoreg_t MemtoReg;
-  logic RegWEN, ihit, dhit, equal;
+  logic RegWEN, en, equal;
   logic halt;
 
   //register signal
@@ -23,7 +23,7 @@ interface mmwbpipe_if;
 
   modport mm (
     input opfunc, MemtoReg, RegWEN,
-          ihit, dhit, equal, halt,
+          en, equal, halt,
           rd, portB, npc, ALUOut, load
   );
 
