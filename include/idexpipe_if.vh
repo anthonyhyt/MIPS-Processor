@@ -29,15 +29,15 @@ interface idexpipe_if;
   modport id (
     input opfunc, RegDst, MemtoReg, ALUSrc, RegWEN,
           dWENi, dRENi, ihit, ALUOp, ExtOp, halt,
-          rt, rd, shamt, imm
+          rt, rd, shamt, imm, busA, busB, npc
   );
 
   modport ex (
     output opfunc, RegDst, MemtoReg, ALUSrc, RegWEN,
           dWENi, dRENi, ALUOp, ExtOp, halt,
-          rt, rd, shamt, imm
+          rt, rd, shamt, imm, busA, busB, npc
   );
 
 endinterface
 
-`endif "IDEXPIPE_IF_VH"
+`endif //"IDEXPIPE_IF_VH"

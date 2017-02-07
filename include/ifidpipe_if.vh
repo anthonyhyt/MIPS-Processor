@@ -20,5 +20,5 @@ interface ifidpipe_if;
 
 endinterface
 
-`endif "IFIDPIPE_IF_VH"
+`endif //"IFIDPIPE_IF_VH"
 

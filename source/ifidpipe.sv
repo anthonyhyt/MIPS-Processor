@@ -14,7 +14,7 @@ module ifidpipe (
       idif.npc <= '0;
     end else if (ifif.ihit) begin
       idif.instr <= ifif.instr;
-      idif.npc <= ifif.instr;
+      idif.npc <= ifif.npc;
     end
   end
 

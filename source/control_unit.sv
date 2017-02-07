@@ -53,7 +53,7 @@ module control_unit (
         cuif.RegDst = RD;
         cuif.ALUSrc = 1'b0;
         cuif.MemtoReg = ALUO;
-        cuif.RegWEN = cuif.ihit;
+        cuif.RegWEN = 1'b1;
         cuif.dWENi = 1'b0;
         cuif.dRENi = 1'b0;
         cuif.ExtOp = SHAMEXT;
@@ -91,7 +91,7 @@ module control_unit (
         cuif.RegDst = RT;
         cuif.ALUSrc = 1'b1;
         cuif.MemtoReg = ALUO;
-        cuif.RegWEN = cuif.ihit;
+        cuif.RegWEN = 1'b1;
         cuif.dWENi = 1'b0;
         cuif.dRENi = 1'b0;
         cuif.ExtOp = SIGNEXT;
@@ -112,7 +112,6 @@ module control_unit (
 
         if (iti.opcode == LW) begin
           cuif.MemtoReg = DLOAD;
-          cuif.RegWEN = cuif.dhit;
           cuif.dRENi = 1'b1;
         end
 
@@ -146,7 +145,7 @@ module control_unit (
         cuif.RegDst = R31;
         cuif.ALUSrc = 1'b0;
         cuif.MemtoReg = NPC;
-        cuif.RegWEN = cuif.ihit;
+        cuif.RegWEN = 1'b1;
         cuif.dWENi = 1'b0;
         cuif.dRENi = 1'b0;
         cuif.ALUOp = ALU_AND;

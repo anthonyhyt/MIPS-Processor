@@ -36,4 +36,4 @@ interface exmmpipe_if;
 
 endinterface
 
-`endif "EXMMPIPE_IF_VH"
+`endif //"EXMMPIPE_IF_VH"

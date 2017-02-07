@@ -34,4 +34,4 @@ interface mmwbpipe_if;
 
 endinterface
 
-`endif "MMWBPIPE_IF_VH"
+`endif //"MMWBPIPE_IF_VH"
