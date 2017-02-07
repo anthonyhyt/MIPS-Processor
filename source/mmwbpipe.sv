@@ -13,9 +13,12 @@ module mmwbpipe (
   import cpu_types_pkg::*;
   import control_unit_types_pkg::*;
 
+  word_t temp;
+
   always_ff @ (posedge CLK, negedge nRST)
   begin
     if (~nRST) begin
+      temp <= '0;
       wbif.opfunc <= opfunc_t'('0);
       wbif.MemtoReg <= memtoreg_t'('0);
       wbif.RegWEN <= '0;
@@ -36,8 +39,9 @@ module mmwbpipe (
       wbif.portB <= mmif.portB;
       wbif.npc <= mmif.npc;
       wbif.ALUOut <= mmif.ALUOut;
+      wbif.load <= temp;
     end else if (mmif.dhit) begin
-      wbif.load <= mmif.load;
+      temp <= mmif.load;
     end
   end
 

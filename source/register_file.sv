@@ -22,7 +22,7 @@ import cpu_types_pkg::*;
 word_t regs [31:0];
 
 // register_file's write logic
-always_ff @ (posedge CLK, negedge nRST) begin
+always_ff @ (negedge CLK, negedge nRST) begin
   if (nRST == 0) begin
     regs <= '{default:'0}; // why default?
   end else if (rfif.WEN != 0 && rfif.wsel != 0) begin

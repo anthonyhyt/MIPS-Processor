@@ -140,8 +140,8 @@ module datapath (
   assign id2if.rd = rd;
   assign id2if.shamt = rti.shamt;
   assign id2if.imm = iti.imm;
-  assign id2if.busA = busA;
-  assign id2if.busB = busB;
+  assign id2if.busA = rfif.rdat1;
+  assign id2if.busB = rfif.rdat2;
   assign id2if.npc = id1if.npc;
     //EX and MM pipeline related:
   assign ex2if.opfunc = ex1if.opfunc;
@@ -206,8 +206,8 @@ module datapath (
   end
 
     // register_file output related:
-  assign busA = rfif.rdat1;
-  assign busB = rfif.rdat2;
+  //assign busA = ex1if.busA;
+  assign busB = ex1if.busB;
 
     // extender related:
   always_comb begin
@@ -232,14 +232,15 @@ module datapath (
   assign bpc = ex1if.npc + (imm32 << 2);
   assign jpc = {id1if.npc[WORD_W-1:ADDR_W+2], (jti.addr << 2)};
   assign pcif.WEN = (dpif.ihit == 1'b1 && cuif.halt == 1'b0) ? 1'b1 : 1'b0;
-  always_comb begin
-    if (wbif.opfunc == OJR) pcif.pci = ex1if.busA;
-    else if (wbif.opfunc == OBEQ && equal == 1'b1) pcif.pci = bpc;
-    else if (wbif.opfunc == OBNE && equal == 1'b0) pcif.pci = bpc;
-    else if (wbif.opfunc == OJ) pcif.pci = jpc;
-    else if (wbif.opfunc == OJAL) pcif.pci = jpc;
-    else pcif.pci = wbif.npc; // OTHERR, OTHERI, OTHERJ
-  end
+  assign pcif.pci = npc;
+//  always_comb begin
+//    if (wbif.opfunc == OJR) pcif.pci = ex1if.busA;
+//    else if (wbif.opfunc == OBEQ && equal == 1'b1) pcif.pci = bpc;
+//    else if (wbif.opfunc == OBNE && equal == 1'b0) pcif.pci = bpc;
+//    else if (wbif.opfunc == OJ) pcif.pci = jpc;
+//    else if (wbif.opfunc == OJAL) pcif.pci = jpc;
+//    else pcif.pci = wbif.npc; // OTHERR, OTHERI, OTHERJ
+//  end
 
     // request_unit input related:
   //assign ruif.dRENi = mm1if.dRENi;
@@ -262,8 +263,9 @@ module datapath (
   always_ff @ (posedge CLK, negedge nRST) begin
     if (nRST == 0)
       dpif.halt <= 1'b0;
-    else if (cuif.halt == 1'b1)
-      dpif.halt <= wbif.halt;
+    else if (wbif.halt == 1'b1)
+      dpif.halt <= 1'b1;
+      //dpif.halt <= wbif.halt
   end
 
 endmodule
