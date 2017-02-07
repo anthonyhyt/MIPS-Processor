@@ -34,7 +34,7 @@ module idexpipe (
       exif.busB <= word_t'('0);
       exif.busA <= word_t'('0);
       exif.npc <= word_t'('0);
-    end else if (idif.ihit) begin
+    end else if (idif.en) begin
       exif.opfunc <= idif.opfunc;
       exif.RegDst <= idif.RegDst;
       exif.MemtoReg <= idif.MemtoReg;

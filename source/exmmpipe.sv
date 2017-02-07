@@ -29,7 +29,7 @@ module exmmpipe (
       mmif.npc <= word_t'('0);
       mmif.ALUOut <= word_t'(0);
       mmif.store <= word_t'(0);
-    end else if (exif.ihit) begin
+    end else if (exif.en) begin
       mmif.opfunc <= exif.opfunc;
       mmif.MemtoReg <= exif.MemtoReg;
       mmif.RegWEN <= exif.RegWEN;
@@ -42,9 +42,6 @@ module exmmpipe (
       mmif.npc <= exif.npc;
       mmif.ALUOut <= exif.ALUOut;
       mmif.store <= exif.store;
-    end else if (mmif.dhit) begin
-      mmif.dWENi <= '0;
-      mmif.dRENi <= '0;
     end
   end
 

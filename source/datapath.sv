@@ -167,13 +167,12 @@ module datapath (
   assign mm2if.npc = mm1if.npc;
   assign mm2if.ALUOut = mm1if.ALUOut;
   assign mm2if.load = dpif.dmemload;
-    //ihit and dhit signal
-  assign ifif.ihit = dpif.ihit;
-  assign id2if.ihit = dpif.ihit;
-  assign ex2if.ihit = dpif.ihit;
-  assign mm2if.ihit = dpif.ihit;
-  assign mm1if.dhit = dpif.dhit;
-  assign mm2if.dhit = dpif.dhit;
+    //pipe control signal
+  assign ifif.en = dpif.ihit || dpif.dhit;
+  assign ifif.flush = dpif.dhit;
+  assign id2if.en = dpif.ihit || dpif.dhit;
+  assign ex2if.en = dpif.ihit || dpif.dhit;
+  assign mm2if.en = dpif.ihit || dpif.dhit;
     // control_unit input related:
   assign cuif.instr = id1if.instr;
   assign cuif.ihit = dpif.ihit;
@@ -231,7 +230,7 @@ module datapath (
   assign npc = pcif.pco + 4;
   assign bpc = ex1if.npc + (imm32 << 2);
   assign jpc = {id1if.npc[WORD_W-1:ADDR_W+2], (jti.addr << 2)};
-  assign pcif.WEN = (dpif.ihit == 1'b1 && cuif.halt == 1'b0) ? 1'b1 : 1'b0;
+  assign pcif.WEN = (dpif.ihit == 1'b1 && dpif.halt == 1'b0);
   assign pcif.pci = npc;
 //  always_comb begin
 //    if (wbif.opfunc == OJR) pcif.pci = ex1if.busA;
