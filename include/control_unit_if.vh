@@ -16,7 +16,7 @@ interface control_unit_if;
   import cpu_types_pkg::*;
   import control_unit_types_pkg::*;
 
-  // input signal for control unit
+  // input signals for control unit
   word_t instr;
   logic ihit, dhit;
   // output signals for control unit
