@@ -14,6 +14,11 @@
 `include "request_unit_if.vh"
 `include "alu_if.vh"
 `include "pc_if.vh"
+//pipeline interface
+`include "ifidpipe_if.vh"
+`include "idexpipe_if.vh"
+`include "exmmpipe_if.vh"
+`include "mmwbpipe_if.vh"
 
 // alu op, mips op, and instruction type
 `include "cpu_types_pkg.vh"
@@ -37,14 +42,28 @@ module datapath (
   request_unit_if   ruif();
   alu_if            aif();
   pc_if             pcif();
+  // pipeline interface
+  ifidpipe_if       ifif();
+  ifidpipe_if       id1if();
+  idexpipe_if       id2if();
+  idexpipe_if       ex1if();
+  exmmpipe_if       ex2if();
+  exmmpipe_if       mm1if();
+  mmwbpipe_if       mm2if();
+  mmwbpipe_if       wbif();
+
 
   // components instanciations
   register_file           REF(CLK, nRST, rfif);
   control_unit            CTR(cuif);
-  request_unit            REQ(CLK, nRST, ruif);
+  //****request_unit            REQ(CLK, nRST, ruif);
   alu                     ALU(aif);
   pc #(.PC_INIT(PC_INIT)) PC(CLK, nRST, pcif);
-
+  // pipeline
+  idifpipe                IFID(CLK, nRST, ifif, id1if);
+  idexpipe                IDEX(CLK, nRST, id2if, ex1if);
+  exmmpipe                EXMM(CLK, nRST, ex2if, mm1if);
+  mmwbpipe                MMWB(CLK, nRST, mm2if, wbif);
 
   // existing input/output signals
     /*
@@ -98,19 +117,37 @@ module datapath (
 
 
   // cast input instruction
-  assign rti = r_t'(dpif.imemload);
-  assign iti = i_t'(dpif.imemload);
-  assign jti = j_t'(dpif.imemload);
+  assign rti = r_t'(id1if.instr);
+  assign iti = i_t'(id1if.instr);
+  assign jti = j_t'(id1if.instr);
 
   // connections
+    //IF and ID pipeline related:
+  assign ifif.instr = dpif.imemload;
+  assign ifif.npc = npc;
+    //ID and EX pipeline related:
+  assign id2if.opfunc
+  assign id2if.RegDst
+  assign id2if.MemtoReg
+  assign id2if.ALUSrc
+  assign id2if.RegWEN
+  assign id2if.dWENi
+  assign id2if.dRENi
+  assign id2if.ALUOp
+  assign id2if.ExtOp
+  assign id2if.halt
+  assign id2if.rt
+  assign id2if.rd
+  assign id2if.shamt = rti.shamt;
+  assign id21f.imm = iti.imm;
     // control_unit input related:
-  assign cuif.instr = dpif.imemload;
+  assign cuif.instr = id1if.instr;
   assign cuif.ihit = dpif.ihit;
   assign cuif.dhit = dpif.dhit;
   assign rs = rti.rs;
   assign rt = rti.rt;
   assign rd = rti.rd;
-  assign imm16 = iti.imm;
+  //assign imm16 = iti.imm;
 
     // register_file input related:
   assign rfif.WEN = cuif.RegWEN;
