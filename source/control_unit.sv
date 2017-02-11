@@ -65,8 +65,10 @@ module control_unit (
           cuif.RegWEN = 1'b0;
         end
 
-        if (rti.funct == SLL || rti.funct == SRL)
+        if (rti.funct == SLL || rti.funct == SRL) begin
+          cuif.opfunc = OSL;
           cuif.ALUSrc = 1'b1;
+        end
 
         casez(rti.funct)
           ADDU: cuif.ALUOp = ALU_ADD;
@@ -106,16 +108,19 @@ module control_unit (
         end
 
         if (iti.opcode == LUI) begin
+          cuif.opfunc = OLUI;
           cuif.MemtoReg = PORTB;
           cuif.ExtOp = LUIEXT;
         end
 
         if (iti.opcode == LW) begin
+          cuif.opfunc = OLW;
           cuif.MemtoReg = DLOAD;
           cuif.dRENi = 1'b1;
         end
 
         if (iti.opcode == SW) begin
+          cuif.opfunc = OSW;
           cuif.RegWEN = 1'b0;
           cuif.dWENi = 1'b1;
         end

@@ -33,15 +33,23 @@ package control_unit_types_pkg;
   } extop_t;
 
   // opfunc (opcode/funct) choices
-  typedef enum logic [2:0] {
+  typedef enum logic [3:0] {
     OJR,
+    OSL,
     OBEQ,
     OBNE,
+    OSW,
+    OLW,
+    OLUI,
     OJ,
     OJAL,
     OTHERR,
     OTHERI,
-    OTHERJ
+    OTHERJ,
+    OERROR12,
+    OERROR13,
+    OERROR14,
+    OERROR15
   } opfunc_t;
 
 endpackage
