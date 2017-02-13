@@ -13,24 +13,24 @@ interface exmmpipe_if;
   opfunc_t opfunc;
   memtoreg_t MemtoReg;
   logic RegWEN, dWENi, dRENi, en, equal;
-  logic halt;
+  logic halt, flush;
 
   //register signal
   regbits_t rd;
 
   //pipeline signal
-  word_t portB, npc, ALUOut, store;
+  word_t portB, npc, bpc, ALUOut, store;
 
   modport ex (
     input opfunc, MemtoReg, RegWEN,
           dWENi, dRENi, en, equal, halt,
-          rd, portB, npc, ALUOut, store
+          rd, portB, npc, bpc, ALUOut, store, flush
   );
 
   modport mm (
     output opfunc, MemtoReg, RegWEN,
           dWENi, dRENi, equal, halt,
-          rd, portB, npc, ALUOut, store
+          rd, portB, npc, bpc, ALUOut, store
   );
 
 endinterface

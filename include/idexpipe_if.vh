@@ -16,10 +16,10 @@ interface idexpipe_if;
   logic ALUSrc, RegWEN, dWENi, dRENi, en;
   aluop_t ALUOp;
   extop_t ExtOp;
-  logic halt;
+  logic halt, flush;
 
   //register signal and immediate field
-  regbits_t rt, rd;
+  regbits_t rs, rt, rd;
   logic [SHAM_W-1:0]  shamt;
   logic [IMM_W-1:0]   imm;
 
@@ -29,13 +29,13 @@ interface idexpipe_if;
   modport id (
     input opfunc, RegDst, MemtoReg, ALUSrc, RegWEN,
           dWENi, dRENi, en, ALUOp, ExtOp, halt,
-          rt, rd, shamt, imm, busA, busB, npc
+          rs, rt, rd, shamt, imm, busA, busB, npc, flush
   );
 
   modport ex (
     output opfunc, RegDst, MemtoReg, ALUSrc, RegWEN,
           dWENi, dRENi, ALUOp, ExtOp, halt,
-          rt, rd, shamt, imm, busA, busB, npc
+          rs, rt, rd, shamt, imm, busA, busB, npc
   );
 
 endinterface

@@ -4,19 +4,21 @@
 `include "cpu_types_pkg.vh"
 `include "control_unit_types_pkg.vh"
 
+import cpu_types_pkg::*;
+import control_unit_types_pkg::*;
+
 module mmwbpipe (
   input logic CLK, nRST,
+  input word_t ininstr,
+  output word_t outinstr,
   mmwbpipe_if.mm mmif,
   mmwbpipe_if.wb wbif
 );
 
-  import cpu_types_pkg::*;
-  import control_unit_types_pkg::*;
-
   always_ff @ (posedge CLK, negedge nRST)
   begin
     if (~nRST) begin
-      wbif.opfunc <= opfunc_t'('0);
+      outinstr <= '0;
       wbif.MemtoReg <= memtoreg_t'('0);
       wbif.RegWEN <= '0;
       wbif.equal <= '0;
@@ -27,7 +29,7 @@ module mmwbpipe (
       wbif.ALUOut <= word_t'('0);
       wbif.load <= word_t'('0);
     end else if (mmif.en) begin
-      wbif.opfunc <= mmif.opfunc;
+      outinstr <= ininstr;
       wbif.MemtoReg <= mmif.MemtoReg;
       wbif.RegWEN <= mmif.RegWEN;
       wbif.equal <= mmif.equal;

@@ -19,10 +19,12 @@
 `include "idexpipe_if.vh"
 `include "exmmpipe_if.vh"
 `include "mmwbpipe_if.vh"
+`include "forwarding_unit_if.vh"
 
 // alu op, mips op, and instruction type
 `include "cpu_types_pkg.vh"
 `include "control_unit_types_pkg.vh"
+`include "forwarding_unit_types_pkg.vh"
 
 module datapath (
   input logic CLK, nRST,
@@ -31,27 +33,30 @@ module datapath (
   // import types
   import cpu_types_pkg::*;
   import control_unit_types_pkg::*;
-
+  import forwarding_unit_types_pkg::*;
   // pc init
   parameter PC_INIT = 0;
 
 
   // interfaces
-  register_file_if  rfif();
-  control_unit_if   cuif();
-  request_unit_if   ruif();
-  alu_if            aif();
-  pc_if             pcif();
+  register_file_if    rfif();
+  control_unit_if     cuif();
+  request_unit_if     ruif();
+  alu_if              aif();
+  pc_if               pcif();
+  forwarding_unit_if  fuif();
   // pipeline interface
-  ifidpipe_if       ifif();
-  ifidpipe_if       id1if();
-  idexpipe_if       id2if();
-  idexpipe_if       ex1if();
-  exmmpipe_if       ex2if();
-  exmmpipe_if       mm1if();
-  mmwbpipe_if       mm2if();
-  mmwbpipe_if       wbif();
+  ifidpipe_if         ifif();
+  ifidpipe_if         id1if();
+  idexpipe_if         id2if();
+  idexpipe_if         ex1if();
+  exmmpipe_if         ex2if();
+  exmmpipe_if         mm1if();
+  mmwbpipe_if         mm2if();
+  mmwbpipe_if         wbif();
 
+  // instruction passing wire
+  word_t idinstr, exinstr, mminstr, wbinstr;
 
   // components instanciations
   register_file           REF(CLK, nRST, rfif);
@@ -59,11 +64,12 @@ module datapath (
   //request_unit            REQ(CLK, nRST, ruif);
   alu                     ALU(aif);
   pc #(.PC_INIT(PC_INIT)) PC(CLK, nRST, pcif);
+  forwarding_unit         FU(fuif);
   // pipeline
   ifidpipe                IFID(CLK, nRST, ifif, id1if);
-  idexpipe                IDEX(CLK, nRST, id2if, ex1if);
-  exmmpipe                EXMM(CLK, nRST, ex2if, mm1if);
-  mmwbpipe                MMWB(CLK, nRST, mm2if, wbif);
+  idexpipe                IDEX(CLK, nRST, idinstr, exinstr, id2if, ex1if);
+  exmmpipe                EXMM(CLK, nRST, exinstr, mminstr, ex2if, mm1if);
+  mmwbpipe                MMWB(CLK, nRST, mminstr, wbinstr, mm2if, wbif);
 
   // existing input/output signals
     /*
@@ -110,16 +116,29 @@ module datapath (
     // next PC logic related:
   word_t npc, bpc, jpc;
 
+    // forwarding unit signal
+  word_t EXstore;
+
     // casted instructions
-  r_t rti;
-  i_t iti;
-  j_t jti;
+  r_t rti, exrti, mmrti, wbrti;
+  i_t iti, exiti, mmiti, wbiti;
+  j_t jti, exjti, mmjti, wbjti;
 
-
-  // cast input instruction
+  // cast input instruction:
   assign rti = r_t'(id1if.instr);
   assign iti = i_t'(id1if.instr);
   assign jti = j_t'(id1if.instr);
+    //used only for debugging
+  assign idinstr = id1if.instr;
+  assign exrti = r_t'(exinstr);
+  assign exiti = i_t'(exinstr);
+  assign exjti = j_t'(exinstr);
+  assign mmrti = r_t'(mminstr);
+  assign mmiti = i_t'(mminstr);
+  assign mmjti = j_t'(mminstr);
+  assign wbrti = r_t'(wbinstr);
+  assign wbiti = i_t'(wbinstr);
+  assign wbjti = j_t'(wbinstr);
 
   // connections
     //IF and ID pipeline related:
@@ -136,6 +155,7 @@ module datapath (
   assign id2if.ALUOp = cuif.ALUOp;
   assign id2if.ExtOp = cuif.ExtOp;
   assign id2if.halt = cuif.halt;
+  assign id2if.rs = rs;
   assign id2if.rt = rt;
   assign id2if.rd = rd;
   assign id2if.shamt = rti.shamt;
@@ -155,9 +175,8 @@ module datapath (
   assign ex2if.portB = port_b;
   assign ex2if.npc = ex1if.npc;
   assign ex2if.ALUOut = ALUo;
-  assign ex2if.store = busB;
+  assign ex2if.store = ex1if.busB;
     //MM and WB pipeline related:
-  assign mm2if.opfunc = mm1if.opfunc;
   assign mm2if.MemtoReg = mm1if.MemtoReg;
   assign mm2if.RegWEN = mm1if.RegWEN;
   assign mm2if.equal = mm1if.equal;
@@ -181,6 +200,35 @@ module datapath (
   assign rt = rti.rt;
   assign rd = rti.rd;
   assign imm16 = ex1if.imm;
+
+    // forwarding unit input related:
+  assign fuif.EXrs = ex1if.rs;
+  assign fuif.EXrt = ex1if.rt;
+  assign fuif.MMrd = mm1if.rd;
+  assign fuif.WBrd = wbif.rd;
+  assign fuif.MMregWEN = mm1if.RegWEN;
+  assign fuif.WBregWEN = wbif.RegWEN;
+  assign fuif.MMisLUI = mm1if.opfunc == OLUI;
+
+    //forwarding unit output related:
+  always_comb
+  begin:fwdA
+    casez(fuif.fwdA)
+      FABUSA:  aif.port_a = ex1if.busA;
+      FABUSW:  aif.port_a = busW;
+      FAALU:   aif.port_a = mm1if.ALUOut;
+      FAPORTB: aif.port_a = mm1if.portB;
+    endcase
+  end
+  always_comb
+  begin:fwdB
+    casez(fuif.fwdB)
+      FBBUSB:  EXstore = ex1if.busB;
+      FBBUSW:  EXstore = busW;
+      FBALU:   EXstore = mm1if.ALUOut;
+      FBPORTB: EXstore = mm1if.portB;
+    endcase
+  end
 
     // register_file input related:
   assign rfif.WEN = wbif.RegWEN;
@@ -206,7 +254,7 @@ module datapath (
 
     // register_file output related:
   //assign busA = ex1if.busA;
-  assign busB = ex1if.busB;
+  //assign busB = ex1if.busB;
 
     // extender related:
   always_comb begin
@@ -217,8 +265,8 @@ module datapath (
   end
 
     // ALU input related:
-  assign port_b = (ex1if.ALUSrc == 1'b0) ? ex1if.busB : imm32;
-  assign aif.port_a = ex1if.busA;
+  assign port_b = (ex1if.ALUSrc == 1'b0) ? EXstore : imm32;
+  //assign aif.port_a = ex2if.busA; // move to forwarding unit output part
   assign aif.port_b = port_b;
   assign aif.aluop = ex1if.ALUOp;
 
