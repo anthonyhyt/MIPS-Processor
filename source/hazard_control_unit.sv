@@ -14,7 +14,7 @@
 `include "hazard_control_unit_types_pkg.vh"
 
 module hazard_control_unit (
-  hazard_control_unit_if hcif
+  hazard_control_unit_if.hc hcif
 );
   // import types
   import cpu_types_pkg::*;

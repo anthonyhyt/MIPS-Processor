@@ -42,7 +42,7 @@ module control_unit_tb;
 
   task init;
     begin
-      cuif.instr = '0;
+      c.instr = '0;
     end
   endtask
 
