@@ -31,8 +31,8 @@ module hazard_control_unit (
   // assign local signals
   assign o = hcif.IDopfunc;
 
-  assign use_s_t = (o == OTHERR || o == OBEQ || o == OBNE);
-  assign use_s = (o == OJR || o == OSL || o == OLW || o == OSW || o == OTHERI);
+  assign use_s_t = (o == OTHERR || o == OBEQ || o == OBNE || o == OSW);
+  assign use_s = (o == OJR || o == OSL || o == OLW || o == OTHERI);
 
   assign lduse_s = (hcif.IDrs == hcif.EXrt);
   assign lduse_t = (hcif.IDrt == hcif.EXrt);
@@ -73,17 +73,21 @@ module hazard_control_unit (
     end
     if (hzd_br == 1'b1) begin
       hcif.PCselect = PCBPC;
+      hcif.PCEN = hcif.ihit;
+      hcif.IFIDEN = hcif.ihit;
       hcif.IFIDflush = 1'b1;
       hcif.IDEXflush = 1'b1;
       hcif.EXMMflush = 1'b1;
     end
     if (hzd_jr == 1'b1) begin
       hcif.PCselect = PCPTA;
+      hcif.PCEN = hcif.ihit || hcif.dhit;
       hcif.IFIDflush = 1'b1;
       hcif.IDEXflush = 1'b1;
     end
     if (hzd_j == 1'b1 || hzd_jal == 1'b1) begin
       hcif.PCselect = PCJPC;
+      hcif.PCEN = hcif.ihit || hcif.dhit;
       hcif.IFIDflush = 1'b1;
       hcif.IDEXflush = 1'b1;
     end
