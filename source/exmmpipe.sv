@@ -30,6 +30,7 @@ module exmmpipe (
       mmif.rd <= regbits_t'('0);
       mmif.portB <= word_t'('0);
       mmif.npc <= word_t'('0);
+      mmif.bpc <= word_t'('0);
       mmif.ALUOut <= word_t'(0);
       mmif.store <= word_t'(0);
     end else if (exif.en) begin
@@ -45,6 +46,7 @@ module exmmpipe (
         mmif.rd <= regbits_t'('0);
         mmif.portB <= word_t'('0);
         mmif.npc <= word_t'('0);
+        mmif.bpc <= word_t'('0);
         mmif.ALUOut <= word_t'(0);
         mmif.store <= word_t'(0);
       end else begin
@@ -59,6 +61,7 @@ module exmmpipe (
         mmif.rd <= exif.rd;
         mmif.portB <= exif.portB;
         mmif.npc <= exif.npc;
+        mmif.bpc <= exif.bpc;
         mmif.ALUOut <= exif.ALUOut;
         mmif.store <= exif.store;
       end

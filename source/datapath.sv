@@ -14,17 +14,19 @@
 `include "request_unit_if.vh"
 `include "alu_if.vh"
 `include "pc_if.vh"
+`include "forwarding_unit_if.vh"
+`include "hazard_control_unit_if.vh"
 //pipeline interface
 `include "ifidpipe_if.vh"
 `include "idexpipe_if.vh"
 `include "exmmpipe_if.vh"
 `include "mmwbpipe_if.vh"
-`include "forwarding_unit_if.vh"
 
 // alu op, mips op, and instruction type
 `include "cpu_types_pkg.vh"
 `include "control_unit_types_pkg.vh"
 `include "forwarding_unit_types_pkg.vh"
+`include "hazard_control_unit_types_pkg.vh"
 
 module datapath (
   input logic CLK, nRST,
@@ -34,26 +36,28 @@ module datapath (
   import cpu_types_pkg::*;
   import control_unit_types_pkg::*;
   import forwarding_unit_types_pkg::*;
+  import hazard_control_unit_types_pkg::*;
   // pc init
   parameter PC_INIT = 0;
 
 
   // interfaces
-  register_file_if    rfif();
-  control_unit_if     cuif();
-  request_unit_if     ruif();
-  alu_if              aif();
-  pc_if               pcif();
-  forwarding_unit_if  fuif();
+  register_file_if        rfif();
+  control_unit_if         cuif();
+  request_unit_if         ruif();
+  alu_if                  aif();
+  pc_if                   pcif();
+  forwarding_unit_if      fuif();
+  hazard_control_unit_if  huif();
   // pipeline interface
-  ifidpipe_if         ifif();
-  ifidpipe_if         id1if();
-  idexpipe_if         id2if();
-  idexpipe_if         ex1if();
-  exmmpipe_if         ex2if();
-  exmmpipe_if         mm1if();
-  mmwbpipe_if         mm2if();
-  mmwbpipe_if         wbif();
+  ifidpipe_if             ifif();
+  ifidpipe_if             id1if();
+  idexpipe_if             id2if();
+  idexpipe_if             ex1if();
+  exmmpipe_if             ex2if();
+  exmmpipe_if             mm1if();
+  mmwbpipe_if             mm2if();
+  mmwbpipe_if             wbif();
 
   // instruction passing wire
   word_t idinstr, exinstr, mminstr, wbinstr;
@@ -65,6 +69,7 @@ module datapath (
   alu                     ALU(aif);
   pc #(.PC_INIT(PC_INIT)) PC(CLK, nRST, pcif);
   forwarding_unit         FU(fuif);
+  hazard_control_unit     HU(huif);
   // pipeline
   ifidpipe                IFID(CLK, nRST, ifif, id1if);
   idexpipe                IDEX(CLK, nRST, idinstr, exinstr, id2if, ex1if);
@@ -110,7 +115,7 @@ module datapath (
   word_t busA, busB, busW;
 
     // ALU logic related:
-  word_t imm32, port_b, ALUo;
+  word_t imm32, port_a, port_b, ALUo;
   logic equal;
 
     // next PC logic related:
@@ -155,6 +160,7 @@ module datapath (
   assign id2if.ALUOp = cuif.ALUOp;
   assign id2if.ExtOp = cuif.ExtOp;
   assign id2if.halt = cuif.halt;
+  assign id2if.jaddr = jti.addr;
   assign id2if.rs = rs;
   assign id2if.rt = rt;
   assign id2if.rd = rd;
@@ -175,7 +181,7 @@ module datapath (
   assign ex2if.portB = port_b;
   assign ex2if.npc = ex1if.npc;
   assign ex2if.ALUOut = ALUo;
-  assign ex2if.store = ex1if.busB;
+  assign ex2if.store = EXstore;
     //MM and WB pipeline related:
   assign mm2if.MemtoReg = mm1if.MemtoReg;
   assign mm2if.RegWEN = mm1if.RegWEN;
@@ -187,11 +193,13 @@ module datapath (
   assign mm2if.ALUOut = mm1if.ALUOut;
   assign mm2if.load = dpif.dmemload;
     //pipe control signal
-  assign ifif.en = dpif.ihit || dpif.dhit;
-  assign ifif.flush = dpif.dhit;
-  assign id2if.en = dpif.ihit || dpif.dhit;
-  assign ex2if.en = dpif.ihit || dpif.dhit;
-  assign mm2if.en = dpif.ihit || dpif.dhit;
+  assign ifif.flush = huif.IFIDflush;
+  assign id2if.flush = huif.IDEXflush;
+  assign ex2if.flush = huif.EXMMflush;
+  assign ifif.en = huif.IFIDEN;
+  assign id2if.en = huif.IDEXEN;
+  assign ex2if.en = huif.EXMMEN;
+  assign mm2if.en = huif.MMWBEN;
     // control_unit input related:
   assign cuif.instr = id1if.instr;
   assign cuif.ihit = dpif.ihit;
@@ -210,14 +218,15 @@ module datapath (
   assign fuif.WBregWEN = wbif.RegWEN;
   assign fuif.MMisLUI = mm1if.opfunc == OLUI;
 
-    //forwarding unit output related:
+    // forwarding unit output related:
+  assign aif.port_a = port_a;
   always_comb
   begin:fwdA
     casez(fuif.fwdA)
-      FABUSA:  aif.port_a = ex1if.busA;
-      FABUSW:  aif.port_a = busW;
-      FAALU:   aif.port_a = mm1if.ALUOut;
-      FAPORTB: aif.port_a = mm1if.portB;
+      FABUSA:  port_a = ex1if.busA;
+      FABUSW:  port_a = busW;
+      FAALU:   port_a = mm1if.ALUOut;
+      FAPORTB: port_a = mm1if.portB;
     endcase
   end
   always_comb
@@ -229,6 +238,17 @@ module datapath (
       FBPORTB: EXstore = mm1if.portB;
     endcase
   end
+
+    // hazard control unit related:
+  assign huif.IDrs = rs;
+  assign huif.IDrt = rt;
+  assign huif.EXrt = ex1if.rt;
+  assign huif.IDopfunc = cuif.opfunc;
+  assign huif.EXopfunc = ex1if.opfunc;
+  assign huif.MMopfunc = mm1if.opfunc;
+  assign huif.ihit = dpif.ihit;
+  assign huif.dhit = dpif.dhit;
+  assign huif.MMequal = mm1if.equal;
 
     // register_file input related:
   assign rfif.WEN = wbif.RegWEN;
@@ -276,18 +296,17 @@ module datapath (
 
     // PC input related:
   assign npc = pcif.pco + 4;
-  assign bpc = ex1if.npc + (imm32 << 2);
-  assign jpc = {id1if.npc[WORD_W-1:ADDR_W+2], (jti.addr << 2)};
-  assign pcif.WEN = (dpif.ihit == 1'b1 && dpif.halt == 1'b0);
-  assign pcif.pci = npc;
-//  always_comb begin
-//    if (wbif.opfunc == OJR) pcif.pci = ex1if.busA;
-//    else if (wbif.opfunc == OBEQ && equal == 1'b1) pcif.pci = bpc;
-//    else if (wbif.opfunc == OBNE && equal == 1'b0) pcif.pci = bpc;
-//    else if (wbif.opfunc == OJ) pcif.pci = jpc;
-//    else if (wbif.opfunc == OJAL) pcif.pci = jpc;
-//    else pcif.pci = wbif.npc; // OTHERR, OTHERI, OTHERJ
-//  end
+  assign ex2if.bpc = ex1if.npc + {{14{imm16[IMM_W-1]}}, imm16, 2'b00};
+  assign jpc = {ex1if.npc[WORD_W-1:ADDR_W+2], ex1if.jaddr, 2'b00};
+  assign pcif.WEN = huif.PCEN;
+  always_comb begin
+    casez(huif.PCselect)
+      PCPTA: pcif.pci = port_a;
+      PCBPC: pcif.pci = mm1if.bpc;
+      PCJPC: pcif.pci = jpc;
+      PCNPC: pcif.pci = npc;
+    endcase
+  end
 
     // request_unit input related:
   //assign ruif.dRENi = mm1if.dRENi;

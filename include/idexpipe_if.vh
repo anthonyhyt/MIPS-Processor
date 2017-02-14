@@ -22,19 +22,20 @@ interface idexpipe_if;
   regbits_t rs, rt, rd;
   logic [SHAM_W-1:0]  shamt;
   logic [IMM_W-1:0]   imm;
+  logic [ADDR_W-1:0]  jaddr;
 
   //pipeline signal
   word_t busA, busB, npc;
 
   modport id (
     input opfunc, RegDst, MemtoReg, ALUSrc, RegWEN,
-          dWENi, dRENi, en, ALUOp, ExtOp, halt,
+          dWENi, dRENi, en, ALUOp, ExtOp, halt, jaddr,
           rs, rt, rd, shamt, imm, busA, busB, npc, flush
   );
 
   modport ex (
     output opfunc, RegDst, MemtoReg, ALUSrc, RegWEN,
-          dWENi, dRENi, ALUOp, ExtOp, halt,
+          dWENi, dRENi, ALUOp, ExtOp, halt, jaddr,
           rs, rt, rd, shamt, imm, busA, busB, npc
   );
 
