@@ -27,17 +27,17 @@ module hazard_control_unit_tb;
   parameter PERIOD = 10;
 
   // signals
-  logic CLK;
+  logic CLK = 0;
 
   // clock
   always #(PERIOD/2) CLK++;
 
   // interface
-  hazard_control_unit h();
+  hazard_control_unit_if h();
   // test program
-  test PROG(c);
+  test PROG(h);
   // DUT
-  hazard_control_unit(c);
+  hazard_control_unit DUT(h);
 
   task init;
     begin
@@ -139,10 +139,10 @@ begin
   $display ("Test 02: lw + dhit");
   setr(4, 5, 6);
   setop(OTHERR, OTHERI, OLW);
-  setflag(1'b0, 1'b1, 1'b0;
+  setflag(1'b0, 1'b1, 1'b0);
   disp;
 
-  $diplay ("Test 03: sw + ihit stall");
+  $display ("Test 03: sw + ihit stall");
   setr(4, 5, 6);
   setop(OTHERR, OTHERI, OSW);
   setflag(1'b1, 1'b0, 1'b1);
@@ -292,25 +292,35 @@ begin
   $display ("Type VII - Combinations");
   $display ("");
 
-  $display ("Test 24: Normal lw + Load-Use");
+  $display ("Test 24: lw + Load-Use");
   setr(4, 5, 4);
   setop(OBNE, OLW, OLW);
-  setflag(1'b1, 1'b0, 1'b0);
+  setflag(1'b1, 1'b1, 1'b0);
   disp;
 
-  $display ("Test 25: Normal sw + Load-Use");
+  $display ("Test 25: sw + Load-Use");
   setr(4, 5, 5);
   setop(OTHERR, OLW, OSW);
-  setflag(1'b1, 1'b0, 1'b0);
+  setflag(1'b0, 1'b1, 1'b0);
   disp;
 
-  $display ("Test 26: Normal sw + !Load-Use");
+  $display ("Test 26: sw + !Load-Use");
   setr(4, 5, 6);
   setop(OTHERR, OLW, OSW);
+  setflag(1'b1, 1'b1, 1'b0);
+  disp;
+
+  $display ("Test 27: lw + jr + !dhit");
+  setr(4, 5, 6);
+  setop(OTHERR, OJR, OLW);
   setflag(1'b1, 1'b0, 1'b0);
   disp;
 
-
+  $display ("Test 28: lw + jr + dhit");
+  setr(4, 5, 6);
+  setop(OTHERR, OJR, OLW);
+  setflag(1'b1, 1'b1, 1'b0);
+  disp;
 
 
 end
