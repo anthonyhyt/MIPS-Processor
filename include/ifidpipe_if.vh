@@ -1,5 +1,5 @@
-`ifndef "IFIDPIPE_IF_VH"
-`define "IFIDPIPE_IF_VH"
+`ifndef IFIDPIPE_IF_VH
+`define IFIDPIPE_IF_VH
 
 `include "cpu_types_pkg.vh"
 

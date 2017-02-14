@@ -1,5 +1,5 @@
-`ifndef "IDEXPIPE_IF_VH"
-`define "IDEXPIPE_IF_VH"
+`ifndef IDEXPIPE_IF_VH
+`define IDEXPIPE_IF_VH
 
 `include "cpu_types_pkg.vh"
 `include "control_unit_types_pkg.vh"

@@ -1,5 +1,5 @@
-`ifndef "EXMMPIPE_IF_VH"
-`define "EXMMPIPE_IF_VH"
+`ifndef EXMMPIPE_IF_VH
+`define EXMMPIPE_IF_VH
 
 `include "cpu_types_pkg.vh"
 `include "control_unit_types_pkg.vh"

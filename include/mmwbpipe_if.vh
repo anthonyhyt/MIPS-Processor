@@ -1,5 +1,5 @@
-`ifndef "MMWBPIPE_IF_VH"
-`define "MMWBPIPE_IF_VH"
+`ifndef MMWBPIPE_IF_VH
+`define MMWBPIPE_IF_VH
 
 `include "cpu_types_pkg.vh"
 `include "control_unit_types_pkg.vh"
