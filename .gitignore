@@ -1,6 +1,7 @@
 work
 mapped
 fpga
+quartus_projects
 transcript
 Makefile
 modelsim.ini
@@ -12,3 +13,7 @@ README
 .deps
 *.hex
 *.ver
+*.pdf
+*.summary
+*.diff
+*~
