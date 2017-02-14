@@ -292,13 +292,13 @@ begin
   $display ("Type VII - Combinations");
   $display ("");
 
-  $display ("Test 24: lw + Load-Use");
+  $display ("Test 24: lw + Load-Use + ihit dhit");
   setr(4, 5, 4);
   setop(OBNE, OLW, OLW);
   setflag(1'b1, 1'b1, 1'b0);
   disp;
 
-  $display ("Test 25: sw + Load-Use");
+  $display ("Test 25: sw + Load-Use + !ihit dhit");
   setr(4, 5, 5);
   setop(OTHERR, OLW, OSW);
   setflag(1'b0, 1'b1, 1'b0);

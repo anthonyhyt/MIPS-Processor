@@ -60,11 +60,11 @@ module hazard_control_unit (
     hcif.EXMMflush = 1'b0;
     if (hzd_lwsw == 1'b1) begin
       hcif.PCEN = hcif.ihit && hcif.dhit;
-      hcif.IFIDEN = hcif.ihit && hcif.dhit;
-      hcif.IDEXEN = hcif.ihit && hcif.dhit;
+      hcif.IFIDEN = hcif.dhit;
+      hcif.IDEXEN = hcif.dhit;
       hcif.EXMMEN = hcif.dhit;
       hcif.MMWBEN = hcif.dhit;
-      hcif.EXMMflush = !hcif.ihit && hcif.dhit;
+      hcif.IFIDflush = !hcif.ihit && hcif.dhit;
     end
     if (hzd_lduse == 1'b1) begin
       hcif.PCEN = 1'b0;
