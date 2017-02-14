@@ -34,6 +34,7 @@ package control_unit_types_pkg;
 
   // opfunc (opcode/funct) choices
   typedef enum logic [3:0] {
+    OJUNK,
     OJR,
     OSL,
     OBEQ,
@@ -46,7 +47,6 @@ package control_unit_types_pkg;
     OTHERR,
     OTHERI,
     OTHERJ,
-    OERROR12,
     OERROR13,
     OERROR14,
     OERROR15

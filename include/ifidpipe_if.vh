@@ -7,7 +7,7 @@ interface ifidpipe_if;
 
   import cpu_types_pkg::*;
 
-  logic ifiden, flush, en;
+  logic flush, en;
   word_t instr, npc;
 
   modport instr_f (
