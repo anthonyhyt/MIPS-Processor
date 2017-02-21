@@ -4,17 +4,17 @@ import control_unit_types_pkg::*;
 
 module predictor (
   input logic CLK, nRST, ABtaken,
-  input logic [1:0] prindex,
+  input logic [1:0] ifprindex, mmprindex;
   input opfunc_t opfunc,
   output logic PRresult
 );
 
   logic re1, re2, re3, re4, en1, en2, en3, en4;
 
-  assign en1 = prindex==2'b00 & (opfunc == OBNE | opfunc == OBEQ);
-  assign en2 = prindex==2'b01 & (opfunc == OBNE | opfunc == OBEQ);
-  assign en3 = prindex==2'b10 & (opfunc == OBNE | opfunc == OBEQ);
-  assign en4 = prindex==2'b11 & (opfunc == OBNE | opfunc == OBEQ);
+  assign en1 = mmprindex==2'b00 & (opfunc == OBNE | opfunc == OBEQ);
+  assign en2 = mmprindex==2'b01 & (opfunc == OBNE | opfunc == OBEQ);
+  assign en3 = mmprindex==2'b10 & (opfunc == OBNE | opfunc == OBEQ);
+  assign en4 = mmprindex==2'b11 & (opfunc == OBNE | opfunc == OBEQ);
 
   apredictor  PRE1(CLK, nRST, ABtaken, en1, re1);
   apredictor  PRE2(CLK, nRST, ABtaken, en2, re2);
@@ -23,7 +23,7 @@ module predictor (
 
   always_comb
   begin:output_select
-    casez(prindex)
+    casez(ifprindex)
       2'b00: PRresult = re1;
       2'b01: PRresult = re2;
       2'b10: PRresult = re3;

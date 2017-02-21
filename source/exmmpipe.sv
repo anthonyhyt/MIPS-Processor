@@ -27,6 +27,7 @@ module exmmpipe (
       mmif.dRENi <= '0;
       mmif.equal <= '0;
       mmif.halt <= '0;
+      mmif.taken <= '0;
       mmif.rd <= regbits_t'('0);
       mmif.portB <= word_t'('0);
       mmif.npc <= word_t'('0);
@@ -43,6 +44,7 @@ module exmmpipe (
         mmif.dRENi <= '0;
         mmif.equal <= '0;
         mmif.halt <= '0;
+        mmif.taken <= '0;
         mmif.rd <= regbits_t'('0);
         mmif.portB <= word_t'('0);
         mmif.npc <= word_t'('0);
@@ -58,6 +60,7 @@ module exmmpipe (
         mmif.dRENi <= exif.dRENi;
         mmif.equal <= exif.equal;
         mmif.halt <= exif.halt;
+        mmif.taken <= exif.taken;
         mmif.rd <= exif.rd;
         mmif.portB <= exif.portB;
         mmif.npc <= exif.npc;

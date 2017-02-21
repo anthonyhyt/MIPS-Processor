@@ -12,13 +12,16 @@ module ifidpipe (
     if (~nRST) begin
       idif.instr <= '0;
       idif.npc <= '0;
+      idif.taken <= '0;
     end else if (ifif.en) begin
       if (ifif.flush) begin
         idif.instr <= '0;
         idif.npc <= '0;
+        idif.taken <= '0;
       end else begin
         idif.instr <= ifif.instr;
         idif.npc <= ifif.npc;
+        idif.taken <= ifif.taken;
       end
     end
   end
