@@ -16,6 +16,8 @@
 `include "pc_if.vh"
 `include "forwarding_unit_if.vh"
 `include "hazard_control_unit_if.vh"
+`include "branch_buffer_if.vh"
+`include "predictor_if.vh"
 //pipeline interface
 `include "ifidpipe_if.vh"
 `include "idexpipe_if.vh"
@@ -40,7 +42,6 @@ module datapath (
   // pc init
   parameter PC_INIT = 0;
 
-
   // interfaces
   register_file_if        rfif();
   control_unit_if         cuif();
@@ -49,6 +50,8 @@ module datapath (
   pc_if                   pcif();
   forwarding_unit_if      fuif();
   hazard_control_unit_if  huif();
+  branch_buffer_if        bbif();
+  predictor_if            bpif();
   // pipeline interface
   ifidpipe_if             ifif();
   ifidpipe_if             id1if();
@@ -70,6 +73,8 @@ module datapath (
   pc #(.PC_INIT(PC_INIT)) PC(CLK, nRST, pcif);
   forwarding_unit         FU(fuif);
   hazard_control_unit     HU(huif);
+  branch_buffer           BB(CLK, nRST, bbif);
+  predictor               BP(CLK, nRST, bpif);
   // pipeline
   ifidpipe                IFID(CLK, nRST, ifif, id1if);
   idexpipe                IDEX(CLK, nRST, idinstr, exinstr, id2if, ex1if);
@@ -124,6 +129,10 @@ module datapath (
     // forwarding unit signal
   word_t EXstore;
 
+    // branch related:
+  word_t mmpc;
+  logic PRtaken;
+
     // casted instructions
   r_t rti, exrti, mmrti, wbrti;
   i_t iti, exiti, mmiti, wbiti;
@@ -149,6 +158,7 @@ module datapath (
     //IF and ID pipeline related:
   assign ifif.instr = dpif.imemload;
   assign ifif.npc = npc;
+  assign ifif.taken = PRtaken;
     //ID and EX pipeline related:
   assign id2if.opfunc = cuif.opfunc;
   assign id2if.RegDst = cuif.RegDst;
@@ -161,6 +171,7 @@ module datapath (
   assign id2if.ExtOp = cuif.ExtOp;
   assign id2if.halt = cuif.halt;
   assign id2if.jaddr = jti.addr;
+  assign id2if.taken = id1if.taken;
   assign id2if.rs = rs;
   assign id2if.rt = rt;
   assign id2if.rd = rd;
@@ -177,6 +188,7 @@ module datapath (
   assign ex2if.dRENi = ex1if.dRENi;
   assign ex2if.equal = equal;
   assign ex2if.halt = ex1if.halt;
+  assign ex2if.taken = ex1if.taken;
   assign ex2if.rd = rw;
   assign ex2if.portB = port_b;
   assign ex2if.npc = ex1if.npc;
@@ -249,6 +261,22 @@ module datapath (
   assign huif.ihit = dpif.ihit;
   assign huif.dhit = dpif.dhit;
   assign huif.MMequal = mm1if.equal;
+  assign huif.PRtaken = PRtaken;
+  assign huif.MMtaken = mm1if.taken;
+
+    //branch prediction
+    //predictor
+  assign mmpc = mm1if.npc - 4;
+  assign PRtaken = bpif.PRresult & bbif.PRvalid & (bbif.PRtag == pcif.pco[31:4]);
+  assign bpif.mmprindex = mmpc[3:2];
+  assign bpif.ifprindex = pcif.pco[3:2];
+  assign bpif.opfunc = mm1if.opfunc;
+  assign bpif.ABtaken = huif.ABtaken;
+    //branch buffer
+  assign bbif.MMopfunc = mm1if.opfunc;
+  assign bbif.MMbpc = mm1if.bpc;
+  assign bbif.MMpc = mmpc;
+  assign bbif.IFpcindex = pcif.pco[3:2];
 
     // register_file input related:
   assign rfif.WEN = wbif.RegWEN;
@@ -305,6 +333,7 @@ module datapath (
       PCBPC: pcif.pci = mm1if.bpc;
       PCJPC: pcif.pci = jpc;
       PCNPC: pcif.pci = npc;
+      PRBPC: pcif.pci = bbif.PRbpc;
     endcase
   end
 
