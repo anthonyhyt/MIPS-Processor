@@ -10,11 +10,15 @@
 package hazard_control_unit_types_pkg;
 
   // PCselect (next PC input MUX control signal) choices
-  typedef enum logic [1:0] {
+  typedef enum logic [2:0] {
     PCNPC,
     PCBPC,
     PCJPC,
-    PCPTA
+    PCPTA,
+    PRBPC,
+    PCERROR5,
+    PCERROR6,
+    PCERROR7
   } pcselect_t;
 
 endpackage

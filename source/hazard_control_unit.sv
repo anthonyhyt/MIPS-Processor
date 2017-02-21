@@ -28,6 +28,10 @@ module hazard_control_unit (
   logic hzd_lwsw,   hzd_lduse,  hzd_br;
   logic hzd_jr,     hzd_j,      hzd_jal;
 
+  // assign actual branch taken signal
+  assign hcif.ABtaken = (hcif.MMopfunc == OBEQ && hcif.MMequal ||
+                        hcif.MMopfunc == OBNE && !hcif.MMequal);
+
   // assign local signals
   assign o = hcif.IDopfunc;
 
@@ -41,8 +45,7 @@ module hazard_control_unit (
   assign hzd_lduse  = (hcif.EXopfunc == OLW &&
                       ((use_s_t || use_s) && lduse_s ||
                       use_s_t && lduse_t));
-  assign hzd_br     = (hcif.MMopfunc == OBEQ && hcif.MMequal ||
-                      hcif.MMopfunc == OBNE && !hcif.MMequal);
+  assign hzd_br     = (hcif.ABtaken && !hcif.MMtaken);
   assign hzd_jr     = (hcif.EXopfunc == OJR && !hzd_br);
   assign hzd_j      = (hcif.EXopfunc == OJ && !hzd_br);
   assign hzd_jal    = (hcif.EXopfunc == OJAL && !hzd_br);
@@ -70,6 +73,9 @@ module hazard_control_unit (
       hcif.PCEN = 1'b0;
       hcif.IFIDEN = 1'b0;
       hcif.IDEXflush = 1'b1;
+    end
+    if (hcif.PRtaken) begin
+      hcif.PCselect = PRBPC;
     end
     if (hzd_br == 1'b1) begin
       hcif.PCselect = PCBPC;
