@@ -7,15 +7,15 @@ interface ifidpipe_if;
 
   import cpu_types_pkg::*;
 
-  logic flush, en;
+  logic flush, en, taken;
   word_t instr, npc;
 
   modport instr_f (
-    input instr, npc, en, flush
+    input instr, npc, en, flush, taken
   );
 
   modport id (
-    output instr, npc
+    output instr, npc, taken
   );
 
 endinterface

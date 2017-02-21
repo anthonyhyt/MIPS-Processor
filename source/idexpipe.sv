@@ -31,6 +31,7 @@ module idexpipe (
       exif.ExtOp <= extop_t'('0);
       exif.halt <= '0;
       exif.jaddr <= '0;
+      exif.taken <= '0;
       exif.rs <= regbits_t'('0);
       exif.rt <= regbits_t'('0);
       exif.rd <= regbits_t'('0);
@@ -53,6 +54,7 @@ module idexpipe (
         exif.ExtOp <= extop_t'('0);
         exif.halt <= '0;
         exif.jaddr <= '0;
+        exif.taken <= '0;
         exif.rs <= regbits_t'('0);
         exif.rt <= regbits_t'('0);
         exif.rd <= regbits_t'('0);
@@ -74,6 +76,7 @@ module idexpipe (
         exif.ExtOp <= idif.ExtOp;
         exif.halt <= idif.halt;
         exif.jaddr <= idif.jaddr;
+        exif.taken <= idif.taken;
         exif.rs <= idif.rs;
         exif.rt <= idif.rt;
         exif.rd <= idif.rd;
