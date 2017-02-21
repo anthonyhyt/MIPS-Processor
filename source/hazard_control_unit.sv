@@ -45,7 +45,7 @@ module hazard_control_unit (
   assign hzd_lduse  = (hcif.EXopfunc == OLW &&
                       ((use_s_t || use_s) && lduse_s ||
                       use_s_t && lduse_t));
-  assign hzd_br     = (hcif.ABtaken && !hcif.MMtaken);
+  assign hzd_br     = (hcif.ABtaken ^ hcif.MMtaken);
   assign hzd_jr     = (hcif.EXopfunc == OJR && !hzd_br);
   assign hzd_j      = (hcif.EXopfunc == OJ && !hzd_br);
   assign hzd_jal    = (hcif.EXopfunc == OJAL && !hzd_br);
@@ -78,7 +78,10 @@ module hazard_control_unit (
       hcif.PCselect = PRBPC;
     end
     if (hzd_br == 1'b1) begin
-      hcif.PCselect = PCBPC;
+      if (hcif.ABtaken == 1'b1)
+        hcif.PCselect = PCBPC;
+      else
+        hcif.PCselect = PRMPC;
       hcif.PCEN = hcif.ihit;
       hcif.IFIDEN = hcif.ihit;
       hcif.IFIDflush = 1'b1;

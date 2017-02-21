@@ -334,6 +334,7 @@ module datapath (
       PCJPC: pcif.pci = jpc;
       PCNPC: pcif.pci = npc;
       PRBPC: pcif.pci = bbif.PRbpc;
+      PRMPC: pcif.pci = mm1if.npc;
     endcase
   end
 

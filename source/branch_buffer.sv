@@ -37,7 +37,7 @@ module branch_buffer (
   assign b.PRvalid = bufs[b.IFpcindex].bufvalid;
 
   // branch_buffer's write logic
-  always_ff @ (posedge CLK, negedge nRST) begin
+  always_ff @ (negedge CLK, negedge nRST) begin
     if (nRST == 0) begin
       bufs <= '{default:'0};
     end else if (b.MMopfunc == OBEQ || b.MMopfunc == OBNE) begin

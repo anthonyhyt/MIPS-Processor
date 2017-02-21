@@ -16,7 +16,7 @@ package hazard_control_unit_types_pkg;
     PCJPC,
     PCPTA,
     PRBPC,
-    PCERROR5,
+    PRMPC,
     PCERROR6,
     PCERROR7
   } pcselect_t;

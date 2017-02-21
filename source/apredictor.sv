@@ -54,7 +54,7 @@ module apredictor (
     endcase
   end
 
-  always_ff @ (posedge CLK, negedge nRST)
+  always_ff @ (negedge CLK, negedge nRST)
   begin
     if (~nRST)
       state <= SNOTTAKEN;
