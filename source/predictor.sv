@@ -1,9 +1,12 @@
 `include "predictor_if.vh"
+`include "control_unit_types_pkg.vh"
 
 module predictor (
   input logic CLK, nRST,
   predictor_if.bp bpif
 );
+
+  import control_unit_types_pkg::*;
 
   logic re1, re2, re3, re4, en1, en2, en3, en4;
 
@@ -25,6 +28,7 @@ module predictor (
       2'b10: bpif.PRresult = re3;
       2'b11: bpif.PRresult = re4;
       default: bpif.PRresult = 1'b0;
+    endcase
   end
 
 endmodule

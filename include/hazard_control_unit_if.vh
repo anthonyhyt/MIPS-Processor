@@ -41,7 +41,7 @@ interface hazard_control_unit_if;
 
   modport tb (
     input PCselect, PCEN, IFIDEN, IDEXEN, EXMMEN, MMWBEN,
-    input IFIDflush, IDEXflush, EXMMflush, ABtaken
+    input IFIDflush, IDEXflush, EXMMflush, ABtaken,
     output IDrs, IDrt, EXrt, IDopfunc, EXopfunc, MMopfunc,
     output ihit, dhit, MMequal, PRtaken, MMtaken
   );

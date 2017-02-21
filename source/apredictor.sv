@@ -7,7 +7,7 @@ module apredictor (
     SNOTTAKEN = 2'b00,  //strong not taken
     WNOTTAKEN = 2'b01,  //weak not taken
     STAKEN = 2'b11,     //strong taken
-    WTAKEN = 1'b10      //weak taken
+    WTAKEN = 2'b10      //weak taken
   } state_t;
 
   state_t state, nxtstate;
