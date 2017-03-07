@@ -1,6 +1,7 @@
 module dcache_cu (
   input logic CLK, nRST,
   input logic dirty0, dirty1, dirties, dhit, lru, dwait, flush,
+  input logic dmemREN, dmemWEN,
   input logic [3:0] count,
   output logic dREN, dWEN, clr_ct_en, hit_ct_en, hit_ct_o_en,
   output logic cclear, halt, block_offset
@@ -33,6 +34,22 @@ module dcache_cu (
         end else
           nxtstate = state;
       end
+      IDLE2: begin
+        if ((dREN | dWEN) & ~dwait) begin
+          if (dirty)
+            nxtstate = WB1;
+          else
+            nxtstate = READ1;
+        end else if (flush) begin
+          if (dirties)
+            nxtstate = COUNT;
+          else
+            nxtstate = CTSTORE;
+        end else
+          nxtstate = IDLE;
+      end
+      WB1: begin
+        if (dWEN
 
   end
 
