@@ -266,7 +266,7 @@ begin
   disp;
   rstf;
   sw(32'h20000008, 32'h77770000);
-  w7cl
+  w7c;
   disp;
   sm;
   disp;

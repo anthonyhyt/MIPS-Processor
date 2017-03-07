@@ -101,7 +101,8 @@ module dcache (
 
     //cache store source select
   assign datatocache = cif.dwait ? dcif.dmemstore : cif.dload;
-  assign wayselect = cif.dwait ? dhit1 : lru[index];
+  assign wayselect = cif.dwait ? dhit1 : (dcbuf[index][0].dcvalid & dcbuf[index][1].dcvalid ?
+lru[index] : dcbuf[index][0].dcvalid);
   assign blockselect = cif.dwait ? addr.dcpcblof : block_offset_cu;
 
     //data load to datapath select
@@ -125,7 +126,7 @@ module dcache (
     else if (WEN) begin
       dcbuf[index][wayselect].dctag <= addr.dcpctag;
       dcbuf[index][wayselect].dcblock[blockselect] <= datatocache;
-      if (dcif.dmemWEN & ~cif.dwait)
+      if (dcif.dmemWEN)
         dcbuf[index][wayselect].dcdirty <= 1'b1;
       else if (~cif.dwait & blockselect == 1'b1) begin
         dcbuf[index][wayselect].dcvalid <= 1'b1;
@@ -141,7 +142,7 @@ module dcache (
   begin
     if (~nRST)
       lru <= '{default: '0};
-    else if (WEN)
+    else if (~cif.dwait & (dcif.dmemREN | dcif.dmemWEN) & block_offset_cu == 1'b1)
       lru[index] <= dhit0;
   end
 
