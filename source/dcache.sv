@@ -8,8 +8,8 @@
 
 module dcache (
   input logic CLK, nRST,
-  datapath_cache_if.dcache dcif,
-  caches_if.dcache cif
+  caches_if.dcache cif,
+  datapath_cache_if.dcache dcif
 );
   //types import
   import caches_types_pkg::*;
