@@ -16,10 +16,10 @@ package caches_types_pkg;
   import cpu_types_pkg::*;
 
   // field width
-  C_TAG_W = 26;
-  C_IIX_W = 4;
-  C_DIX_W = 3;
-  C_BOF_W = 2;
+  parameter C_TAG_W = 26;
+  parameter C_IIX_W = 4;
+  parameter C_DIX_W = 3;
+  parameter C_BOF_W = 2;
 
   // types
   typedef logic [C_TAG_W-1:0] c_tag_t;
@@ -49,17 +49,17 @@ package caches_types_pkg;
     logic   icvalid;
     c_tag_t ictag;
     word_t  icblock;
-  } ic_frame_t
+  } ic_frame_t;
 
   typedef struct packed {
     logic      dcvalid;
     logic      dcdirty;
     c_tag_t    dctag;
     dc_block_t dcblock;
-  } dc_frame_t
+  } dc_frame_t;
 
   // cache set struct
-  typedef dc_frame_t [1:0] dc_set_t
+  typedef dc_frame_t [1:0] dc_set_t;
 
 endpackage
 
