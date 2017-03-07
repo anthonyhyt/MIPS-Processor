@@ -223,61 +223,57 @@ begin
   sw(32'h0000000C, 32'hDDDD0000);
   disp;
 
-  // store to 0h10000000, 0h10000004, 0h10000008, 0h1000000C
+  // load from 0h10000000, 0h10000004, 0h10000008, 0h1000000C
   // - misses followed by hits
-  $display ("Saving 4 words - second round");
-  sw(32'h10000000, 32'h11110000);
+  $display ("Loading 4 words - second round");
+  lw(32'h10000000);
   disp;
   lm(32'h11111111);
   disp;
   lm(32'h22222222);
   disp;
   rstf;
-  sw(32'h10000004, 32'h22220000);
+  lw(32'h10000004);
   disp;
   rstf;
-  sw(32'h10000008, 32'h33330000);
+  lw(32'h10000008);
   disp;
   lm(32'h33333333);
   disp;
   lm(32'h44444444);
   disp;
   rstf;
-  sw(32'h1000000C, 32'h44440000);
+  lw(32'h1000000C);
   disp;
   rstf;
 
-  // store to 0h20000000, 0h20000004, 0h20000008, 0h2000000C
+  // load from 0h20000000, 0h20000004, 0h20000008, 0h2000000C
   // - write back, misses followed by hits
-  $display ("Saving 4 words - third round");
-  sw(32'h20000000, 32'h55550000);
+  $display ("Loading 4 words - third round");
+  lw(32'h20000000);
   w7c;
   disp;
   sm;
-  disp;
   sm;
-  disp;
   lm(32'h55555555);
   disp;
   lm(32'h66666666);
   disp;
   rstf;
-  sw(32'h20000004, 32'h66660000);
+  lw(32'h20000004);
   disp;
   rstf;
-  sw(32'h20000008, 32'h77770000);
-  w7cl
+  lw(32'h20000008);
+  w7c;
   disp;
   sm;
-  disp;
   sm;
-  disp;
   lm(32'h77777777);
   disp;
   lm(32'h88888888);
   disp;
   rstf;
-  sw(32'h2000000C, 32'h88880000);
+  lw(32'h2000000C);
   disp;
   rstf;
 
