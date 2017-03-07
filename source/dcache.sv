@@ -36,7 +36,7 @@ module dcache (
   //cache flip flops signals
   word_t datatocache;
   logic [2:0] index;
-  logic WEN, invalidate;
+  logic WEN, invalidate, wayselect, blockselect;
   //dc_frame_t cur_frame;
   //dc_set_t cur_set;
   dc_block_t todp, tomem;
@@ -59,14 +59,15 @@ module dcache (
   );
   dcache_cu DCU (
     CLK, nRST,
-    dirty0, dirty1, dirties, dhit, lru[index], cif.dwait, dcif.halt,
+    dirty0, dirty1, dirties, dhit, wayselect, cif.dwait, dcif.halt,
     dcif.dmemREN, dcif.dmemWEN, clr_num,
     cif.dREN, cif.dWEN, clr_ct_en, hit_ct_en, hit_ct_o_en,
     cclear, dcif.flushed, block_offset_cu, clr_ct_clr, invalidate
   );
 
   //variable cast ----------------------------------------
-  dc_pc_t addr = dc_pc_t'(dcif.dmemaddr);
+  dc_pc_t addr;
+  assign addr = dc_pc_t'(dcif.dmemaddr);
 
   //data caches configuration ----------------------------
     //assignment for unused signals in multicore
@@ -74,7 +75,7 @@ module dcache (
   assign cif.cctrans = 1'b0;
 
     //abbr for some signal
-  assign WEN = ~cif.dwait & (dcif.dmemREN | dcif.dmemWEN);
+  assign WEN = ~cif.dwait & (dcif.dmemREN | dcif.dmemWEN) | dhit & dcif.dmemWEN;
   //alias  dcbuf[index] = cur_set;
   //alias  cur_frame = cur_set[lru[index]];
   assign dirty0 = dcbuf[index][0].dcdirty;
@@ -93,12 +94,15 @@ module dcache (
   assign dhit0 = (addr.dcpctag == dcbuf[index][0].dctag) & dcbuf[index][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[index][1].dctag) & dcbuf[index][1].dcvalid;
   assign dhit = dhit0 | dhit1;
+  assign dcif.dhit = dhit;
 
     //cache index select
   assign index = cclear ? clr_num[3:1] : addr.dcpcind;
 
     //cache store source select
   assign datatocache = cif.dwait ? dcif.dmemstore : cif.dload;
+  assign wayselect = cif.dwait ? dhit1 : lru[index];
+  assign blockselect = cif.dwait ? addr.dcpcblof : block_offset_cu;
 
     //data load to datapath select
   assign dcif.dmemload = dcbuf[index][dhit0][addr.dcpcblof];
@@ -119,18 +123,17 @@ module dcache (
     if (~nRST)
       dcbuf <= '{default: '0};
     else if (WEN) begin
-      dcbuf[index][lru[index]].dctag <= addr.dcpctag;
-      dcbuf[index][lru[index]].dcblock[block_offset_cu] <= datatocache;
-      if (~dcbuf[index][lru[index]].dcvalid) begin
-        dcbuf[index][lru[index]].dcvalid <= 1'b1;
-        dcbuf[index][lru[index]].dcdirty <= 1'b0;
-      end else begin
-        if (~dcbuf[index][lru[index]].dcdirty)
-          dcbuf[index][lru[index]].dcdirty <= 1'b1;
+      dcbuf[index][wayselect].dctag <= addr.dcpctag;
+      dcbuf[index][wayselect].dcblock[blockselect] <= datatocache;
+      if (dcif.dmemWEN & ~cif.dwait)
+        dcbuf[index][wayselect].dcdirty <= 1'b1;
+      else if (~cif.dwait & blockselect == 1'b1) begin
+        dcbuf[index][wayselect].dcvalid <= 1'b1;
+        dcbuf[index][wayselect].dcdirty <= 1'b0;
       end
     end
     if (invalidate)
-      dcbuf[index][lru[index]].dcvalid <= 1'b0;
+      dcbuf[index][wayselect].dcvalid <= 1'b0;
   end
 
     //lru flip-flops

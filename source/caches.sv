@@ -24,10 +24,10 @@ module caches (
   word_t daddr;
 
   // icache
-  //icache  ICACHE(dcif, cif);
+  icache  ICACHE(dcif, cif);
   // dcache
-  //dcache  DCACHE(dcif, cif);
-
+  dcache  DCACHE(dcif, cif);
+/*
   // single cycle instr saver (for memory ops)
   always_ff @(posedge CLK)
   begin
@@ -59,5 +59,5 @@ module caches (
   assign cif.dstore = dcif.dmemstore;
   assign cif.iaddr = dcif.imemaddr;
   assign cif.daddr = dcif.dmemaddr;
-
+*/
 endmodule

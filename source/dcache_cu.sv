@@ -102,25 +102,25 @@ module dcache_cu (
           nxtstate = IDLE;
       end
       WB1: begin
-        if (dmemWEN & ~dwait)
+        if ( (dmemREN | dmemWEN) & ~dwait)
           nxtstate = WB2;
         else
           nxtstate = state;
       end
       WB2: begin
-        if (dmemWEN & ~dwait)
+        if ( (dmemREN | dmemWEN) & ~dwait)
           nxtstate = READ1;
         else
           nxtstate = state;
       end
       READ1: begin
-        if (dmemREN & ~dwait)
+        if ( (dmemREN | dmemWEN) & ~dwait)
           nxtstate = READ2;
         else
           nxtstate = state;
       end
       READ2: begin
-        if (dmemREN & ~dwait)
+        if ( (dmemREN | dmemWEN) & ~dwait)
           nxtstate = IDLE2;
         else
           nxtstate = state;
