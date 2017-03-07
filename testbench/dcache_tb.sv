@@ -78,13 +78,37 @@ module dcache_tb;
     end
   endtask
 
+  // wait 7 cycles
+  task w7c;
+    begin
+      wc;
+      wc;
+      wc;
+      wc;
+      wc;
+      wc;
+      wc;
+    end
+  endtask
+
+  // toggle dwait
+  task tdwait;
+    begin
+      w7c;
+      c.dwait = 1'b0;
+      w7c;
+      c.dwait = 1'b1;
+      w7c;
+    end
+  endtask
+
   // reset all flag
   task rstf;
     begin
       c.dwait = 1'b1;
       dc.dmemREN = 1'b0;
       dc.dmemWEN = 1'b0;
-      wc;
+      w7c;
     end
   endtask
 
@@ -94,7 +118,7 @@ module dcache_tb;
     begin
       dc.dmemaddr = addr;
       dc.dmemREN = 1'b1;
-      wc;
+      w7c;
     end
   endtask
 
@@ -106,7 +130,7 @@ module dcache_tb;
       dc.dmemaddr = addr;
       dc.dmemstore = word;
       dc.dmemWEN = 1'b1;
-      wc;
+      w7c;
     end
   endtask
 
@@ -117,7 +141,7 @@ module dcache_tb;
       if (c.dREN != 1'b1) $display ("ERROR: dREN isn't set when loading");
       c.dload = word;
       c.dwait = 1'b0;
-      wc;
+      w7c;
       c.dwait = 1'b1;
     end
   endtask
@@ -128,7 +152,7 @@ module dcache_tb;
       if (c.dWEN != 1'b1) $display ("ERROR: dWEN isn't set when storing");
       $display ("Stored a word: %h", c.dstore);
       c.dwait = 1'b0;
-      wc;
+      w7c;
       c.dwait = 1'b1;
     end
   endtask
@@ -146,8 +170,14 @@ module dcache_tb;
   task flush;
     begin
       dc.halt = 1'b1;
-      c.dwait = 1'b0;
-      @(posedge dc.flushed);
+      tdwait;
+      tdwait;
+      tdwait;
+      tdwait;
+      tdwait;
+      tdwait;
+      tdwait;
+      tdwait;
       $display ("Successfully flushed");
     end
   endtask
