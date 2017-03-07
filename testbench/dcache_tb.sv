@@ -108,7 +108,7 @@ module dcache_tb;
       c.dwait = 1'b1;
       dc.dmemREN = 1'b0;
       dc.dmemWEN = 1'b0;
-      w7c;
+      wc;
     end
   endtask
 
@@ -118,7 +118,7 @@ module dcache_tb;
     begin
       dc.dmemaddr = addr;
       dc.dmemREN = 1'b1;
-      w7c;
+      wc;
     end
   endtask
 
@@ -130,7 +130,7 @@ module dcache_tb;
       dc.dmemaddr = addr;
       dc.dmemstore = word;
       dc.dmemWEN = 1'b1;
-      w7c;
+      wc;
     end
   endtask
 
@@ -141,7 +141,7 @@ module dcache_tb;
       if (c.dREN != 1'b1) $display ("ERROR: dREN isn't set when loading");
       c.dload = word;
       c.dwait = 1'b0;
-      w7c;
+      wc;
       c.dwait = 1'b1;
     end
   endtask
@@ -152,7 +152,7 @@ module dcache_tb;
       if (c.dWEN != 1'b1) $display ("ERROR: dWEN isn't set when storing");
       $display ("Stored a word: %h", c.dstore);
       c.dwait = 1'b0;
-      w7c;
+      wc;
       c.dwait = 1'b1;
     end
   endtask
@@ -251,6 +251,9 @@ begin
   // - write back, misses followed by hits
   $display ("Saving 4 words - third round");
   sw(32'h20000000, 32'h55550000);
+  w7c;
+  disp;
+  sm;
   disp;
   sm;
   disp;
@@ -263,6 +266,9 @@ begin
   disp;
   rstf;
   sw(32'h20000008, 32'h77770000);
+  w7cl
+  disp;
+  sm;
   disp;
   sm;
   disp;
