@@ -138,7 +138,6 @@ module dcache_tb;
   task lm;
     input logic [31:0] word;
     begin
-      if (c.dREN != 1'b1) $display ("ERROR: dREN isn't set when loading");
       c.dload = word;
       c.dwait = 1'b0;
       wc;
@@ -149,7 +148,6 @@ module dcache_tb;
   // store mem
   task sm;
     begin
-      if (c.dWEN != 1'b1) $display ("ERROR: dWEN isn't set when storing");
       $display ("Stored a word: %h", c.dstore);
       c.dwait = 1'b0;
       wc;
@@ -244,36 +242,6 @@ begin
   disp;
   rstf;
   lw(32'h1000000C);
-  disp;
-  rstf;
-
-  // load from 0h20000000, 0h20000004, 0h20000008, 0h2000000C
-  // - write back, misses followed by hits
-  $display ("Loading 4 words - third round");
-  lw(32'h20000000);
-  w7c;
-  disp;
-  sm;
-  sm;
-  lm(32'h55555555);
-  disp;
-  lm(32'h66666666);
-  disp;
-  rstf;
-  lw(32'h20000004);
-  disp;
-  rstf;
-  lw(32'h20000008);
-  w7c;
-  disp;
-  sm;
-  sm;
-  lm(32'h77777777);
-  disp;
-  lm(32'h88888888);
-  disp;
-  rstf;
-  lw(32'h2000000C);
   disp;
   rstf;
 

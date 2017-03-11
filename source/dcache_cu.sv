@@ -3,12 +3,12 @@ module dcache_cu (
   input logic dirty0, dirty1, dirties, dhit, lru, dwait, flush,
   input logic dmemREN, dmemWEN,
   input logic [3:0] count,
-  output logic dREN, dWEN, clr_ct_en, hit_ct_en, hit_ct_o_en,
-  output logic cclear, halt, block_offset, clr_ct_clr, invalidate
+  output logic dREN, dWEN, clr_ct_en, hit_ctup, hit_ctdown, hit_ct_o_en,
+  output logic cclear, halt, block_offset, clr_ct_clr
 );
 
   typedef enum logic [3:0] {
-    IDLE, IDLE2, WB1, WB2, READ1, READ2,
+    IDLE, WB1, WB2, READ1, READ2,
     COUNT, FLUSH1, FLUSH2, CTSTORE, HALT
   } state_t;
 
@@ -17,24 +17,23 @@ module dcache_cu (
 
   assign dirty = ~lru & dirty0 | lru & dirty1;
   assign clr_ct_clr = ~cclear;
+  assign hit_ctdown = (state == IDLE) & (nxtstate == WB1);
 
   always_comb
   begin:output_logic
     dREN = 1'b0;
     dWEN = 1'b0;
     clr_ct_en = 1'b0;
-    hit_ct_en = 1'b0;
+    hit_ctup = 1'b0;
     hit_ct_o_en = 1'b0;
     cclear = 1'b0;
     halt = 1'b0;
     block_offset = 1'b0;
-    invalidate = 1'b0;
     casez(state)
       //normal operation
-      IDLE: hit_ct_en = 1'b1;
+      IDLE: hit_ctup = dmemREN | dmemWEN;
       WB1: begin
         dWEN = 1'b1;
-        invalidate = 1'b1;
       end
       WB2: begin
         dWEN = 1'b1;
@@ -54,7 +53,6 @@ module dcache_cu (
       FLUSH1: begin
         dWEN = 1'b1;
         cclear = 1'b1;
-        invalidate = 1'b1;
       end
       FLUSH2: begin
         dWEN = 1'b1;
@@ -87,41 +85,27 @@ module dcache_cu (
         end else
           nxtstate = state;
       end
-      IDLE2: begin
-        if ((dmemREN | dmemWEN) & ~dhit) begin
-          if (dirty)
-            nxtstate = WB1;
-          else
-            nxtstate = READ1;
-        end else if (flush) begin
-          if (dirties)
-            nxtstate = FLUSH1;
-          else
-            nxtstate = CTSTORE;
-        end else
-          nxtstate = IDLE;
-      end
       WB1: begin
-        if ( (dmemREN | dmemWEN) & ~dwait)
+        if (~dwait)
           nxtstate = WB2;
         else
           nxtstate = state;
       end
       WB2: begin
-        if ( (dmemREN | dmemWEN) & ~dwait)
+        if (~dwait)
           nxtstate = READ1;
         else
           nxtstate = state;
       end
       READ1: begin
-        if ( (dmemREN | dmemWEN) & ~dwait)
+        if ( ~dwait)
           nxtstate = READ2;
         else
           nxtstate = state;
       end
       READ2: begin
-        if ( (dmemREN | dmemWEN) & ~dwait)
-          nxtstate = IDLE2;
+        if (~dwait)
+          nxtstate = IDLE;
         else
           nxtstate = state;
       end

@@ -3,7 +3,7 @@ module flex_counter
   parameter BITS = 4
 )
 (
-  input logic CLK, nRST, clear, count_enable,
+  input logic CLK, nRST, clear, countup, countdown,
   output logic [BITS - 1:0] count_out
 );
 
@@ -13,8 +13,10 @@ module flex_counter
       count_out <= '0;
     else if (clear)
       count_out <= '0;
-    else if (count_enable)
+    else if (countup)
       count_out <= count_out + 1;
+    else if (countdown)
+      count_out <= count_out - 1;
   end
 
 endmodule
