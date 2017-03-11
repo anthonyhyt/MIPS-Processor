@@ -1,6 +1,6 @@
 module dcache_cu (
   input logic CLK, nRST,
-  input logic dirty0, dirty1, dirties, dhit, lru, dwait, flush,
+  input logic dirty0, dirty1, dirties, needWB, dhit, lru, dwait, flush,
   input logic dmemREN, dmemWEN,
   input logic [3:0] count,
   output logic dREN, dWEN, clr_ct_en, hit_ctup, hit_ctdown, hit_ct_o_en,
@@ -9,7 +9,7 @@ module dcache_cu (
 
   typedef enum logic [3:0] {
     IDLE, WB1, WB2, READ1, READ2,
-    COUNT, FLUSH1, FLUSH2, CTSTORE, HALT
+    FLUSH1, FLUSH2, CTSTORE, HALT
   } state_t;
 
   state_t state, nxtstate;
@@ -17,7 +17,7 @@ module dcache_cu (
 
   assign dirty = ~lru & dirty0 | lru & dirty1;
   assign clr_ct_clr = ~cclear;
-  assign hit_ctdown = (state == IDLE) & (nxtstate == WB1);
+  assign hit_ctdown = (state == IDLE) & (nxtstate == READ1);
 
   always_comb
   begin:output_logic
@@ -45,19 +45,18 @@ module dcache_cu (
         block_offset = 1'b1;
       end
       //flush and halt operation
-      COUNT: begin
-        dWEN = 1'b1;
-        cclear = 1'b1;
-        clr_ct_en = 1'b1;
-      end
       FLUSH1: begin
-        dWEN = 1'b1;
+        if (needWB)
+          dWEN = 1'b1;
+        else
+          clr_ct_en = 1'b1;
         cclear = 1'b1;
       end
       FLUSH2: begin
         dWEN = 1'b1;
         cclear = 1'b1;
         block_offset = 1'b1;
+        clr_ct_en = (nxtstate != FLUSH2);
       end
       CTSTORE: begin
         dWEN = 1'b1;
@@ -110,12 +109,6 @@ module dcache_cu (
           nxtstate = state;
       end
       //flush and halt operation
-      COUNT: begin
-        if (~dwait)
-          nxtstate = FLUSH2;
-        else
-          nxtstate = FLUSH1;
-      end
       FLUSH1: begin
         if (~dwait)
           nxtstate = FLUSH2;
@@ -127,7 +120,7 @@ module dcache_cu (
           if (~dirties | count == 4'hf)
             nxtstate = CTSTORE;
           else
-            nxtstate = COUNT;
+            nxtstate = FLUSH1;
         end else
           nxtstate = state;
       end

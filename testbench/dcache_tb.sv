@@ -57,6 +57,9 @@ module dcache_tb;
       @(posedge CLK);
       @(negedge CLK);
       nRST = 1'b1;
+      // make sure input signal is aligned with posedge of CLK
+      // since signals are generated from datapath pipeline
+      @(posedge CLK);
     end
   endtask
 
@@ -73,38 +76,16 @@ module dcache_tb;
   // wait 1 cycle
   task wc;
     begin
-      @(posedge CLK);
-      @(negedge CLK);
-    end
-  endtask
-
-  // wait 7 cycles
-  task w7c;
-    begin
-      wc;
-      wc;
-      wc;
-      wc;
-      wc;
-      wc;
-      wc;
-    end
-  endtask
-
-  // toggle dwait
-  task tdwait;
-    begin
-      w7c;
-      c.dwait = 1'b0;
-      w7c;
-      c.dwait = 1'b1;
-      w7c;
+      #(PERIOD);
     end
   endtask
 
   // reset all flag
   task rstf;
     begin
+      while (~dc.dhit)
+        wc;
+      wc; //enable will be reset in next cycle when dhit provided
       c.dwait = 1'b1;
       dc.dmemREN = 1'b0;
       dc.dmemWEN = 1'b0;
@@ -138,16 +119,17 @@ module dcache_tb;
   task lm;
     input logic [31:0] word;
     begin
+      if (c.dREN != 1'b1) $display ("ERROR: dREN isn't set when loading");
       c.dload = word;
       c.dwait = 1'b0;
       wc;
-      c.dwait = 1'b1;
     end
   endtask
 
   // store mem
   task sm;
     begin
+      if (c.dWEN != 1'b1) $display ("ERROR: dWEN isn't set when storing");
       $display ("Stored a word: %h", c.dstore);
       c.dwait = 1'b0;
       wc;
@@ -168,14 +150,8 @@ module dcache_tb;
   task flush;
     begin
       dc.halt = 1'b1;
-      tdwait;
-      tdwait;
-      tdwait;
-      tdwait;
-      tdwait;
-      tdwait;
-      tdwait;
-      tdwait;
+      c.dwait = 1'b0;
+      @(posedge dc.flushed);
       $display ("Successfully flushed");
     end
   endtask
@@ -221,27 +197,59 @@ begin
   sw(32'h0000000C, 32'hDDDD0000);
   disp;
 
-  // load from 0h10000000, 0h10000004, 0h10000008, 0h1000000C
+  // store to 0h10000000, 0h10000004, 0h10000008, 0h1000000C
   // - misses followed by hits
-  $display ("Loading 4 words - second round");
-  lw(32'h10000000);
+  sw(32'h10000000, 32'h11110000);
   disp;
   lm(32'h11111111);
   disp;
   lm(32'h22222222);
   disp;
   rstf;
-  lw(32'h10000004);
+  sw(32'h10000004, 32'h22220000);
   disp;
   rstf;
-  lw(32'h10000008);
+  sw(32'h10000008, 32'h33330000);
   disp;
   lm(32'h33333333);
   disp;
   lm(32'h44444444);
   disp;
   rstf;
-  lw(32'h1000000C);
+  sw(32'h1000000C, 32'h44440000);
+  disp;
+  rstf;
+
+  // store to 0h20000000, 0h20000004, 0h20000008, 0h2000000C
+  // - write back, misses followed by hits
+  sw(32'h20000000, 32'h55550000);
+  disp;
+    //store two words
+  sm;
+  disp;
+  sm;
+  disp;
+  lm(32'h55555555);
+  disp;
+  lm(32'h66666666);
+  disp;
+  rstf;
+  sw(32'h20000004, 32'h66660000);
+  disp;
+  rstf;
+  sw(32'h20000008, 32'h77770000);
+  disp;
+    //store two words
+  sm;
+  disp;
+  sm;
+  disp;
+  lm(32'h77777777);
+  disp;
+  lm(32'h88888888);
+  disp;
+  rstf;
+  sw(32'h2000000C, 32'h88880000);
   disp;
   rstf;
 

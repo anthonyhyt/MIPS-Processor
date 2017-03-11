@@ -13,9 +13,9 @@ module flex_counter
       count_out <= '0;
     else if (clear)
       count_out <= '0;
-    else if (countup)
+    else if (countup & ~countdown)
       count_out <= count_out + 1;
-    else if (countdown)
+    else if (countdown & ~countup)
       count_out <= count_out - 1;
   end
 
