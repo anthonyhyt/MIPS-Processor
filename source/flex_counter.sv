@@ -3,15 +3,13 @@ module flex_counter
   parameter BITS = 4
 )
 (
-  input logic CLK, nRST, clear, countup, countdown,
+  input logic CLK, nRST, countup, countdown,
   output logic [BITS - 1:0] count_out
 );
 
   always_ff @ (posedge CLK, negedge nRST)
   begin
     if (~nRST)
-      count_out <= '0;
-    else if (clear)
       count_out <= '0;
     else if (countup & ~countdown)
       count_out <= count_out + 1;
