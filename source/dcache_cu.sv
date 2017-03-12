@@ -31,7 +31,7 @@ module dcache_cu (
     block_offset = 1'b0;
     casez(state)
       //normal operation
-      IDLE: hit_ctup = dmemREN | dmemWEN;
+      IDLE: hit_ctup = (dmemREN | dmemWEN) & dhit;
       WB1: begin
         dWEN = 1'b1;
       end

@@ -357,6 +357,8 @@ module datapath (
   assign dpif.datomic = '0; // unused
 
     // make halt signal a reg
+  assign dpif.halt = wbif.halt;
+  /*
   always_ff @ (posedge CLK, negedge nRST) begin
     if (nRST == 0)
       dpif.halt <= 1'b0;
@@ -364,5 +366,5 @@ module datapath (
       dpif.halt <= 1'b1;
       //dpif.halt <= wbif.halt
   end
-
+  */
 endmodule

@@ -75,16 +75,17 @@ module dcache (
   assign cif.cctrans = 1'b0;
 
     //abbr for some signal
-  assign cacheWEN = dhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN;
+  assign cacheWEN = ~cclear & (dhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
   assign dirty0 = dcbuf[index][0].dcdirty;
   assign dirty1 = dcbuf[index][1].dcdirty;
 
     //dirties signal generation
   assign dirties = |alldirties;
   generate
-    for (i = 0; i < 8; i++) begin
-      for (j = 0; j < 2; j++)
+    for (i = 0; i < 8; i++) begin:outer
+      for (j = 0; j < 2; j++) begin:inner
         assign alldirties[2*i+j] = (dcbuf[i][j].dcvalid & dcbuf[i][j].dcdirty);
+      end
     end
   endgenerate
 
@@ -101,7 +102,7 @@ module dcache (
   assign blockselect = dhit ? addr.dcpcblof : block_offset_cu;
 
     //data load to datapath select
-  assign dcif.dmemload = dcbuf[index][dhit0][addr.dcpcblof];
+  assign dcif.dmemload = dcbuf[index][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
   assign tomem = lru[index]&~cclear | wayselect&cclear ? dcbuf[index][1].dcblock : dcbuf[index][0].dcblock;
@@ -110,15 +111,15 @@ module dcache (
 
     //memory address select
   assign cacheaddr = {dcbuf[index][wayselect].dctag, index, block_offset_cu, 2'b00};
-  assign memaddr = cclear ? cacheaddr : dcif.dmemaddr;
+  assign memaddr = cclear ? cacheaddr : {dcif.dmemaddr[31:3], block_offset_cu, 2'b00};
   assign cif.daddr = hit_ct_o_en ? 32'h00003100 : memaddr;
 
     //data caches flip-flops
   always_ff @ (posedge CLK, negedge nRST)
   begin
-    if (~nRST)
+    if (~nRST) begin
       dcbuf <= '{default: '0};
-    else if (cacheWEN) begin
+    end else if (cacheWEN) begin
       dcbuf[index][wayselect].dctag <= addr.dcpctag;
       dcbuf[index][wayselect].dcblock[blockselect] <= datatocache;
       if (dcif.dmemWEN & dhit)

@@ -11,17 +11,17 @@
 `include "caches_if.vh"
 
 // cpu types
-`include "cpu_types_pkg.vh"
+//`include "cpu_types_pkg.vh"
 
 module caches (
   input logic CLK, nRST,
-  datapath_cache_if.cache dcif,
+  datapath_cache_if dcif,
   caches_if cif
 );
-  import cpu_types_pkg::*;
+  //import cpu_types_pkg::*;
 
-  word_t instr;
-  word_t daddr;
+  //word_t instr;
+  //word_t daddr;
 
   // icache
   icache  ICACHE(CLK, nRST, cif, dcif);
