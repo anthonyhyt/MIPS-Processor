@@ -1,10 +1,13 @@
 module dcache_cu (
   input logic CLK, nRST,
-  input logic dirty0, dirty1, dirties, needWB, dhit, lru, dwait, flush,
-  input logic dmemREN, dmemWEN,
+  input logic dirty, dirties, needWB,
+  input logic dhit, dwait,
+  input logic dmemREN, dmemWEN, flush,
   input logic [3:0] count,
-  output logic dREN, dWEN, clr_ct_en, hit_ctup, hit_ctdown, hit_ct_o_en,
-  output logic cclear, halt, block_offset, clr_ct_clr, invalidate, dhit_idle
+  output logic dREN, dWEN,
+  output logic flctup, flctclr, hitctup, hitctdn, hitctout,
+  output logic blof, invalid, dhitidle,
+  output logic flushing, halt
 );
 
   typedef enum logic [3:0] {
@@ -13,69 +16,65 @@ module dcache_cu (
   } state_t;
 
   state_t state, nxtstate;
-  logic dirty, statechange, nxtstatechange;
+  logic statechange, nxtstatechange;
 
-  //input combine
-  assign dirty = ~lru & dirty0 | lru & dirty1;
   //detect state change
   assign nxtstatechange = (state != nxtstate);
   //combinational output
-  assign clr_ct_clr = ~cclear;
+  assign flctclr = ~flushing;
 
   always_comb
   begin:output_logic
     dREN = 1'b0;
     dWEN = 1'b0;
-    clr_ct_en = 1'b0;
-    hit_ctup = 1'b0;
-    hit_ct_o_en = 1'b0;
-    cclear = 1'b0;
+    flctup = 1'b0;
+    hitctup = 1'b0;
+    hitctout = 1'b0;
+    flushing = 1'b0;
     halt = 1'b0;
-    block_offset = 1'b0;
-    invalidate = 1'b0;
-    hit_ctdown = 1'b0;
-    dhit_idle = 1'b0;
+    blof = 1'b0;
+    invalid = 1'b0;
+    hitctdn = 1'b0;
+    dhitidle = 1'b0;
     casez(state)
       //normal operation
       IDLE: begin
-        hit_ctup = (dmemREN | dmemWEN) & dhit;
-        dhit_idle = dhit;
+        hitctup = (dmemREN | dmemWEN) & dhit;
+        dhitidle = dhit;
       end
       WB1: begin
         dWEN = 1'b1;
-        invalidate = statechange;
+        invalid = statechange;
       end
       WB2: begin
         dWEN = 1'b1;
-        block_offset = 1'b1;
+        blof = 1'b1;
       end
       READ1: begin
         dREN = 1'b1;
-        invalidate = statechange;
-        hit_ctdown = statechange;
+        invalid = statechange;
+        hitctdn = statechange;
       end
       READ2: begin
         dREN = 1'b1;
-        block_offset = 1'b1;
+        blof = 1'b1;
       end
       //flush and halt operation
       FLUSH1: begin
-        invalidate = statechange;
-        if (needWB)
-          dWEN = 1'b1;
-        else
-          clr_ct_en = 1'b1;
-        cclear = 1'b1;
+        invalid = statechange;
+        dWEN = needWB;
+        flctup = ~needWB;
+        flushing = 1'b1;
       end
       FLUSH2: begin
         dWEN = 1'b1;
-        cclear = 1'b1;
-        block_offset = 1'b1;
-        clr_ct_en = statechange;
+        flushing = 1'b1;
+        blof = 1'b1;
+        flctup = statechange;
       end
       CTSTORE: begin
         dWEN = 1'b1;
-        hit_ct_o_en = 1'b1;
+        hitctout = 1'b1;
       end
       HALT: halt = 1'b1;
     endcase
@@ -86,70 +85,32 @@ module dcache_cu (
     casez(state)
       //normal operation
       IDLE: begin
-        if ((dmemREN | dmemWEN) & ~dhit) begin
-          if (dirty)
-            nxtstate = WB1;
-          else
-            nxtstate = READ1;
-        end else if (flush) begin
-          if (dirties)
-            nxtstate = FLUSH1;
-          else
-            nxtstate = CTSTORE;
-        end else
-          nxtstate = state;
-      end
-      WB1: begin
-        if (~dwait)
-          nxtstate = WB2;
+        if ((dmemREN | dmemWEN) & ~dhit)
+          nxtstate = dirty ? WB1 : READ1;
+        else if (flush)
+          nxtstate = dirties ? FLUSH1 : CTSTORE;
         else
           nxtstate = state;
       end
-      WB2: begin
-        if (~dwait)
-          nxtstate = READ1;
-        else
-          nxtstate = state;
-      end
-      READ1: begin
-        if ( ~dwait)
-          nxtstate = READ2;
-        else
-          nxtstate = state;
-      end
-      READ2: begin
-        if (~dwait)
-          nxtstate = IDLE;
-        else
-          nxtstate = state;
-      end
+      WB1:     nxtstate = ~dwait ? WB2 : state;
+      WB2:     nxtstate = ~dwait ? READ1 : state;
+      READ1:   nxtstate = ~dwait ? READ2 : state;
+      READ2:   nxtstate = ~dwait ? IDLE : state;
       //flush and halt operation
-      FLUSH2: begin
-        if (~dwait)
-          nxtstate = FLUSH1;
-        else
-          nxtstate = state;
-      end
       FLUSH1: begin
         if (~dirties | count == 5'h10)
           nxtstate = CTSTORE;
-        else if (~dwait)
-          nxtstate = FLUSH2;
         else
-          nxtstate = state;
+          nxtstate = ~dwait ? FLUSH2 :  state;
       end
-      CTSTORE: begin
-        if (~dwait)
-          nxtstate = HALT;
-        else
-          nxtstate = state;
-      end
-      HALT: nxtstate = IDLE;
+      FLUSH2:  nxtstate = ~dwait ? FLUSH1 : state;
+      CTSTORE: nxtstate = ~dwait ? HALT : state;
+      HALT:    nxtstate = IDLE;
       default: nxtstate = IDLE;
     endcase
   end
 
-
+  //ff for a state machine and an state change detector
   always_ff @ (posedge CLK, negedge nRST)
   begin
     if (~nRST) begin

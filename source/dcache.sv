@@ -18,25 +18,25 @@ module dcache (
   //variable declaration -----------------------------------------
 
   //counter signals
-  logic clr_ct_clr;      //counter clear
-  logic hit_ctup, hit_ctdown, clr_ct_en;    //counter enable signal
-  logic hit_ct_o_en;     //counter output
-  word_t hit_num;        //cache hit counter
-  logic [3:0] clr_num;   //flush phase counter
+  logic flctclr;      //counter clear
+  logic hitctup, hitctdn, flctup;    //counter enable signal
+  logic hitctout;     //counter output
+  word_t hitnum;        //cache hit counter
+  logic [4:0] flnum;   //flush phase counter
 
   //signal for entering final flush phase
-  logic cclear;
+  logic flushing;
 
   //cache flip flops signals
-  logic block_offset_cu;            //block offset from state machine
+  logic cublof;            //block offset from state machine
   logic dhit, dhit0, dhit1;         //dhit is combinational output
-  logic dhit_idle;                  //dhit_idle output dhit only at idle state
-  logic dirty0, dirty1, dirties;    //dirty signal
-  logic invalidate;                 //invalidate valid bit when WB start
+  logic dhitidle;                  //dhitidle output dhit only at idle state
+  logic dirty, dirties;             //dirty signal
+  logic invalid;                 //invalid valid bit when WB start
     //specific way select
-  logic [2:0] index;                //index select
-  logic wayselect, blockselect;     //way select, block select
-  word_t datatocache;               //source select for cache write
+  logic [2:0] ind;                //ind select
+  logic waysel, blksel;     //way select, block select
+  word_t srcsel;               //source select for cache write
   logic cacheWEN;                   //cache write enable
     //cache to mem select
   dc_block_t tomem;
@@ -52,20 +52,22 @@ module dcache (
   logic lru [7:0];
   flex_counter #(.BITS(32)) HITCT (
     CLK, nRST,
-    1'b0, hit_ctup, hit_ctdown, hit_num
+    1'b0, hitctup, hitctdn, hitnum
   );
   flex_counter #(.BITS(5)) CLRCT (
     CLK, nRST,
-    clr_ct_clr, clr_ct_en, 1'b0, clr_num
+    flctclr, flctup, 1'b0, flnum
   );
   dcache_cu DCU (
     CLK, nRST,
-    dirty0, dirty1, dirties,
-    dcbuf[index][wayselect].dcvalid & dcbuf[index][wayselect].dcdirty,
-    dhit, lru[index], cif.dwait, dcif.halt,
-    dcif.dmemREN, dcif.dmemWEN, clr_num,
-    cif.dREN, cif.dWEN, clr_ct_en, hit_ctup, hit_ctdown, hit_ct_o_en,
-    cclear, dcif.flushed, block_offset_cu, clr_ct_clr, invalidate, dhit_idle
+    dirty, dirties,
+    dcbuf[ind][waysel].dcvalid & dcbuf[ind][waysel].dcdirty,
+    dhit, cif.dwait,
+    dcif.dmemREN, dcif.dmemWEN, dcif.halt, flnum,
+    cif.dREN, cif.dWEN,
+    flctup, flctclr, hitctup, hitctdn, hitctout,
+    cublof, invalid, dhitidle,
+    flushing, dcif.flushed
   );
 
   //variable cast -------------------------------------------------
@@ -78,9 +80,8 @@ module dcache (
   assign cif.cctrans = 1'b0;
 
     //abbr for some signal
-  assign cacheWEN = ~cclear & (dhit_idle ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
-  assign dirty0 = dcbuf[index][0].dcdirty;
-  assign dirty1 = dcbuf[index][1].dcdirty;
+  assign cacheWEN = ~flushing & (dhitidle ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
+  assign dirty = dcbuf[ind][lru[ind]].dcdirty;
 
     //dirties signal generation
   assign dirties = |alldirties;
@@ -93,32 +94,30 @@ module dcache (
   endgenerate
 
     //dhit generation
-  assign dhit0 = (addr.dcpctag == dcbuf[index][0].dctag) & dcbuf[index][0].dcvalid;
-  assign dhit1 = (addr.dcpctag == dcbuf[index][1].dctag) & dcbuf[index][1].dcvalid;
+  assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
+  assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
   assign dhit = dhit0 | dhit1;
-  assign dcif.dhit = dhit_idle;
+  assign dcif.dhit = dhitidle;
 
     //cache store source select
-  assign index = cclear ? clr_num[3:1] : addr.dcpcind;
-  assign datatocache = dhit_idle ? dcif.dmemstore : cif.dload;
-  assign wayselect = cclear ? clr_num[0] : (dhit_idle ? ~dhit0 : (cif.dREN | cif.dWEN) & lru[index]);
-  assign blockselect = dhit_idle ? addr.dcpcblof : block_offset_cu;
+  assign ind = flushing ? flnum[3:1] : addr.dcpcind;
+  assign srcsel = dhitidle ? dcif.dmemstore : cif.dload;
+  assign waysel = flushing ? flnum[0] : (dhitidle ? ~dhit0 : (cif.dREN | cif.dWEN) & lru[ind]);
+  assign blksel = dhitidle ? addr.dcpcblof : cublof;
 
     //data load to datapath select
-  assign dcif.dmemload = dcbuf[index][~dhit0].dcblock[addr.dcpcblof];
+  assign dcif.dmemload = dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
-  assign tomem = lru[index]&~cclear | wayselect&cclear ? dcbuf[index][1].dcblock : dcbuf[index][0].dcblock;
-  assign cacheout = tomem[block_offset_cu];
-  assign cif.dstore = hit_ct_o_en ? hit_num : cacheout;
+  assign tomem = lru[ind]&~flushing | waysel&flushing ? dcbuf[ind][1].dcblock : dcbuf[ind][0].dcblock;
+  assign cacheout = tomem[cublof];
+  assign cif.dstore = hitctout ? hitnum : cacheout;
 
     //memory address select
-  assign cacheaddr = {dcbuf[index][wayselect].dctag, index, block_offset_cu, 2'b00};
-  assign dpaddr = {dcif.dmemaddr[31:3], block_offset_cu, 2'b00};
-      //write back use address in cache tag
-      //load value used the address from datapath
+  assign cacheaddr = {dcbuf[ind][waysel].dctag, ind, cublof, 2'b00};//write back use address in cache tag
+  assign dpaddr = {dcif.dmemaddr[31:3], cublof, 2'b00};   //load value used the address from datapath
   assign memaddr = cif.dWEN ? cacheaddr : dpaddr;
-  assign cif.daddr = hit_ct_o_en ? 32'h00003100 : memaddr;
+  assign cif.daddr = hitctout ? 32'h00003100 : memaddr;
 
     //data caches flip-flops
   always_ff @ (posedge CLK, negedge nRST)
@@ -126,16 +125,16 @@ module dcache (
     if (~nRST) begin
       dcbuf <= '{default: '0};
     end else if (cacheWEN) begin
-      dcbuf[index][wayselect].dctag <= addr.dcpctag;
-      dcbuf[index][wayselect].dcblock[blockselect] <= datatocache;
-      if (dcif.dmemWEN & dhit_idle)
-        dcbuf[index][wayselect].dcdirty <= 1'b1;
-      else if (~cif.dwait & blockselect & cif.dREN) begin
-        dcbuf[index][wayselect].dcvalid <= 1'b1;
-        dcbuf[index][wayselect].dcdirty <= 1'b0;
+      dcbuf[ind][waysel].dctag <= addr.dcpctag;
+      dcbuf[ind][waysel].dcblock[blksel] <= srcsel;
+      if (dcif.dmemWEN & dhitidle)
+        dcbuf[ind][waysel].dcdirty <= 1'b1;
+      else if (~cif.dwait & blksel & cif.dREN) begin
+        dcbuf[ind][waysel].dcvalid <= 1'b1;
+        dcbuf[ind][waysel].dcdirty <= 1'b0;
       end
-    end else if (invalidate)
-      dcbuf[index][wayselect].dcvalid <= 1'b0;
+    end else if (invalid)
+      dcbuf[ind][waysel].dcvalid <= 1'b0;
   end
 
     //lru flip-flops
@@ -143,8 +142,8 @@ module dcache (
   begin
     if (~nRST)
       lru <= '{default: '0};
-    else if (dhit_idle & (dcif.dmemREN | dcif.dmemWEN))
-      lru[index] <= dhit0;
+    else if (dhitidle & (dcif.dmemREN | dcif.dmemWEN))
+      lru[ind] <= dhit0;
   end
 
 endmodule
