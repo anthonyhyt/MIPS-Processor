@@ -15,43 +15,46 @@ module dcache (
   import caches_types_pkg::*;
   import cpu_types_pkg::*;
 
-  //variable declaration ---------------------------------
+  //variable declaration -----------------------------------------
 
   //counter signals
-    //counter clear
-  logic clr_ct_clr;
-    //counter enable signal
-  logic hit_ctup, hit_ctdown, clr_ct_en;
-    //counter output
-  logic hit_ct_o_en;
-  word_t hit_num;
-  logic [3:0] clr_num;
+  logic clr_ct_clr;      //counter clear
+  logic hit_ctup, hit_ctdown, clr_ct_en;    //counter enable signal
+  logic hit_ct_o_en;     //counter output
+  word_t hit_num;        //cache hit counter
+  logic [3:0] clr_num;   //flush phase counter
 
   //signal for entering final flush phase
   logic cclear;
 
-  //variable meaning recognized by name
-  logic block_offset_cu, dhit, dhit0, dhit1, dirty0, dirty1, dirties;
-
   //cache flip flops signals
-  word_t datatocache;
-  logic [2:0] index;
-  logic cacheWEN,  wayselect, blockselect;
+  logic block_offset_cu;            //block offset from state machine
+  logic dhit, dhit0, dhit1;         //dhit is combinational output
+  logic dhit_idle;                  //dhit_idle output dhit only at idle state
+  logic dirty0, dirty1, dirties;    //dirty signal
+  logic invalidate;                 //invalidate valid bit when WB start
+    //specific way select
+  logic [2:0] index;                //index select
+  logic wayselect, blockselect;     //way select, block select
+  word_t datatocache;               //source select for cache write
+  logic cacheWEN;                   //cache write enable
+    //cache to mem select
   dc_block_t tomem;
-  word_t cacheout, memaddr, cacheaddr;
+  word_t cacheout;
+  word_t memaddr, cacheaddr, dpaddr;//address select variables
 
   //temp use variable for generation of dirties
   genvar i, j;
   logic [15:0] alldirties;
 
-  //major component instantiation and declaration --------
+  //major component instantiation and declaration -----------------
   dc_set_t dcbuf [7:0];
   logic lru [7:0];
   flex_counter #(.BITS(32)) HITCT (
     CLK, nRST,
     1'b0, hit_ctup, hit_ctdown, hit_num
   );
-  flex_counter #(.BITS(4)) CLRCT (
+  flex_counter #(.BITS(5)) CLRCT (
     CLK, nRST,
     clr_ct_clr, clr_ct_en, 1'b0, clr_num
   );
@@ -62,20 +65,20 @@ module dcache (
     dhit, lru[index], cif.dwait, dcif.halt,
     dcif.dmemREN, dcif.dmemWEN, clr_num,
     cif.dREN, cif.dWEN, clr_ct_en, hit_ctup, hit_ctdown, hit_ct_o_en,
-    cclear, dcif.flushed, block_offset_cu, clr_ct_clr
+    cclear, dcif.flushed, block_offset_cu, clr_ct_clr, invalidate, dhit_idle
   );
 
-  //variable cast ----------------------------------------
+  //variable cast -------------------------------------------------
   dc_pc_t addr;
   assign addr = dc_pc_t'(dcif.dmemaddr);
 
-  //data caches configuration ----------------------------
+  //data caches configuration -------------------------------------
     //assignment for unused signals in multicore
   assign cif.ccwrite = 1'b0;
   assign cif.cctrans = 1'b0;
 
     //abbr for some signal
-  assign cacheWEN = ~cclear & (dhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
+  assign cacheWEN = ~cclear & (dhit_idle ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
   assign dirty0 = dcbuf[index][0].dcdirty;
   assign dirty1 = dcbuf[index][1].dcdirty;
 
@@ -93,13 +96,13 @@ module dcache (
   assign dhit0 = (addr.dcpctag == dcbuf[index][0].dctag) & dcbuf[index][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[index][1].dctag) & dcbuf[index][1].dcvalid;
   assign dhit = dhit0 | dhit1;
-  assign dcif.dhit = dhit;
+  assign dcif.dhit = dhit_idle;
 
     //cache store source select
   assign index = cclear ? clr_num[3:1] : addr.dcpcind;
-  assign datatocache = dhit ? dcif.dmemstore : cif.dload;
-  assign wayselect = cclear ? clr_num[0] : (dhit ? ~dhit0 : (cif.dREN | cif.dWEN) & lru[index]);
-  assign blockselect = dhit ? addr.dcpcblof : block_offset_cu;
+  assign datatocache = dhit_idle ? dcif.dmemstore : cif.dload;
+  assign wayselect = cclear ? clr_num[0] : (dhit_idle ? ~dhit0 : (cif.dREN | cif.dWEN) & lru[index]);
+  assign blockselect = dhit_idle ? addr.dcpcblof : block_offset_cu;
 
     //data load to datapath select
   assign dcif.dmemload = dcbuf[index][~dhit0].dcblock[addr.dcpcblof];
@@ -111,7 +114,10 @@ module dcache (
 
     //memory address select
   assign cacheaddr = {dcbuf[index][wayselect].dctag, index, block_offset_cu, 2'b00};
-  assign memaddr = cclear ? cacheaddr : {dcif.dmemaddr[31:3], block_offset_cu, 2'b00};
+  assign dpaddr = {dcif.dmemaddr[31:3], block_offset_cu, 2'b00};
+      //write back use address in cache tag
+      //load value used the address from datapath
+  assign memaddr = cif.dWEN ? cacheaddr : dpaddr;
   assign cif.daddr = hit_ct_o_en ? 32'h00003100 : memaddr;
 
     //data caches flip-flops
@@ -122,13 +128,13 @@ module dcache (
     end else if (cacheWEN) begin
       dcbuf[index][wayselect].dctag <= addr.dcpctag;
       dcbuf[index][wayselect].dcblock[blockselect] <= datatocache;
-      if (dcif.dmemWEN & dhit)
+      if (dcif.dmemWEN & dhit_idle)
         dcbuf[index][wayselect].dcdirty <= 1'b1;
       else if (~cif.dwait & blockselect & cif.dREN) begin
         dcbuf[index][wayselect].dcvalid <= 1'b1;
         dcbuf[index][wayselect].dcdirty <= 1'b0;
       end
-    end else if (cif.dWEN & ~block_offset_cu)
+    end else if (invalidate)
       dcbuf[index][wayselect].dcvalid <= 1'b0;
   end
 
@@ -137,7 +143,7 @@ module dcache (
   begin
     if (~nRST)
       lru <= '{default: '0};
-    else if (dhit & (dcif.dmemREN | dcif.dmemWEN))
+    else if (dhit_idle & (dcif.dmemREN | dcif.dmemWEN))
       lru[index] <= dhit0;
   end
 

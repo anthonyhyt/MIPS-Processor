@@ -4,7 +4,7 @@ module dcache_cu (
   input logic dmemREN, dmemWEN,
   input logic [3:0] count,
   output logic dREN, dWEN, clr_ct_en, hit_ctup, hit_ctdown, hit_ct_o_en,
-  output logic cclear, halt, block_offset, clr_ct_clr
+  output logic cclear, halt, block_offset, clr_ct_clr, invalidate, dhit_idle
 );
 
   typedef enum logic [3:0] {
@@ -13,11 +13,14 @@ module dcache_cu (
   } state_t;
 
   state_t state, nxtstate;
-  logic dirty;
+  logic dirty, statechange, nxtstatechange;
 
+  //input combine
   assign dirty = ~lru & dirty0 | lru & dirty1;
+  //detect state change
+  assign nxtstatechange = (state != nxtstate);
+  //combinational output
   assign clr_ct_clr = ~cclear;
-  assign hit_ctdown = (state == IDLE) & (nxtstate == READ1);
 
   always_comb
   begin:output_logic
@@ -29,23 +32,35 @@ module dcache_cu (
     cclear = 1'b0;
     halt = 1'b0;
     block_offset = 1'b0;
+    invalidate = 1'b0;
+    hit_ctdown = 1'b0;
+    dhit_idle = 1'b0;
     casez(state)
       //normal operation
-      IDLE: hit_ctup = (dmemREN | dmemWEN) & dhit;
+      IDLE: begin
+        hit_ctup = (dmemREN | dmemWEN) & dhit;
+        dhit_idle = dhit;
+      end
       WB1: begin
         dWEN = 1'b1;
+        invalidate = statechange;
       end
       WB2: begin
         dWEN = 1'b1;
         block_offset = 1'b1;
       end
-      READ1: dREN = 1'b1;
+      READ1: begin
+        dREN = 1'b1;
+        invalidate = statechange;
+        hit_ctdown = statechange;
+      end
       READ2: begin
         dREN = 1'b1;
         block_offset = 1'b1;
       end
       //flush and halt operation
       FLUSH1: begin
+        invalidate = statechange;
         if (needWB)
           dWEN = 1'b1;
         else
@@ -56,7 +71,7 @@ module dcache_cu (
         dWEN = 1'b1;
         cclear = 1'b1;
         block_offset = 1'b1;
-        clr_ct_en = (nxtstate != FLUSH2);
+        clr_ct_en = statechange;
       end
       CTSTORE: begin
         dWEN = 1'b1;
@@ -109,19 +124,18 @@ module dcache_cu (
           nxtstate = state;
       end
       //flush and halt operation
-      FLUSH1: begin
+      FLUSH2: begin
         if (~dwait)
-          nxtstate = FLUSH2;
+          nxtstate = FLUSH1;
         else
           nxtstate = state;
       end
-      FLUSH2: begin
-        if (~dwait) begin
-          if (~dirties | count == 4'hf)
-            nxtstate = CTSTORE;
-          else
-            nxtstate = FLUSH1;
-        end else
+      FLUSH1: begin
+        if (~dirties | count == 5'h10)
+          nxtstate = CTSTORE;
+        else if (~dwait)
+          nxtstate = FLUSH2;
+        else
           nxtstate = state;
       end
       CTSTORE: begin
@@ -138,10 +152,13 @@ module dcache_cu (
 
   always_ff @ (posedge CLK, negedge nRST)
   begin
-    if (~nRST)
+    if (~nRST) begin
       state <= IDLE;
-    else
+      statechange <= 1'b0;
+    end else begin
       state <= nxtstate;
+      statechange <= 1'b1;
+    end
   end
 
 endmodule
