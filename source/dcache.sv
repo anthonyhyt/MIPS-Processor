@@ -130,9 +130,10 @@ module dcache (
       else if (~cif.dwait & blksel & cif.dREN) begin
         dcbuf[ind][waysel].dcvalid <= 1'b1;
         dcbuf[ind][waysel].dcdirty <= 1'b0;
-      end
-    end
-    if (invalid) dcbuf[ind][waysel].dcvalid <= 1'b0;
+      end else if (invalid)
+        dcbuf[ind][waysel].dcvalid <= 1'b0;
+    end else if (invalid)
+      dcbuf[ind][waysel].dcvalid <= 1'b0;
   end
 
     //lru flip-flops
