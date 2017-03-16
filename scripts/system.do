@@ -12,6 +12,11 @@ quietly virtual signal -install /system_tb/DUT/CPU/DP/IFID { (concat_range (0 to
 quietly virtual signal -install /system_tb/DUT/CPU/DP/IFID { (context /system_tb/DUT/CPU/DP/IFID )&{idifinstr_31 , idifinstr_30 , idifinstr_29 , idifinstr_28 , idifinstr_27 , idifinstr_26 , idifinstr_25 , idifinstr_24 , idifinstr_23 , idifinstr_22 , idifinstr_21 , idifinstr_20 , idifinstr_19 , idifinstr_18 , idifinstr_17 , idifinstr_16 , idifinstr_15 , idifinstr_14 , idifinstr_13 , idifinstr_12 , idifinstr_11 , idifinstr_10 , idifinstr_9 , idifinstr_8 , idifinstr_7 , idifinstr_6 , idifinstr_5 , idifinstr_4 , idifinstr_3 , idifinstr_2 , idifinstr_1 , idifinstr_0 }} instr001
 quietly virtual signal -install /system_tb/DUT/CPU/CM/DCACHE { (concat_range (0 to 31) )( (context /system_tb/DUT/CPU/CM/DCACHE )&{\dcbuf[0][0].dcblock[0][31]~q , \dcbuf[0][0].dcblock[0][30]~q , \dcbuf[0][0].dcblock[0][29]~q , \dcbuf[0][0].dcblock[0][28]~q , \dcbuf[0][0].dcblock[0][27]~q , \dcbuf[0][0].dcblock[0][26]~q , \dcbuf[0][0].dcblock[0][25]~q , \dcbuf[0][0].dcblock[0][24]~q , \dcbuf[0][0].dcblock[0][23]~q , \dcbuf[0][0].dcblock[0][22]~q , \dcbuf[0][0].dcblock[0][21]~q , \dcbuf[0][0].dcblock[0][20]~q , \dcbuf[0][0].dcblock[0][19]~q , \dcbuf[0][0].dcblock[0][18]~q , \dcbuf[0][0].dcblock[0][17]~q , \dcbuf[0][0].dcblock[0][16]~q , \dcbuf[0][0].dcblock[0][15]~q , \dcbuf[0][0].dcblock[0][14]~q , \dcbuf[0][0].dcblock[0][13]~q , \dcbuf[0][0].dcblock[0][12]~q , \dcbuf[0][0].dcblock[0][11]~q , \dcbuf[0][0].dcblock[0][10]~q , \dcbuf[0][0].dcblock[0][9]~q , \dcbuf[0][0].dcblock[0][8]~q , \dcbuf[0][0].dcblock[0][7]~q , \dcbuf[0][0].dcblock[0][6]~q , \dcbuf[0][0].dcblock[0][5]~q , \dcbuf[0][0].dcblock[0][4]~q , \dcbuf[0][0].dcblock[0][3]~q , \dcbuf[0][0].dcblock[0][2]~q , \dcbuf[0][0].dcblock[0][1]~q , \dcbuf[0][0].dcblock[0][0]~q } )} dcblock00
 quietly virtual signal -install /system_tb/DUT/CPU/CM/DCACHE { (concat_range (0 to 31) )( (context /system_tb/DUT/CPU/CM/DCACHE )&{\dcbuf[0][0].dcblock[1][31]~q , \dcbuf[0][0].dcblock[1][30]~q , \dcbuf[0][0].dcblock[1][29]~q , \dcbuf[0][0].dcblock[1][28]~q , \dcbuf[0][0].dcblock[1][27]~q , \dcbuf[0][0].dcblock[1][26]~q , \dcbuf[0][0].dcblock[1][25]~q , \dcbuf[0][0].dcblock[1][24]~q , \dcbuf[0][0].dcblock[1][23]~q , \dcbuf[0][0].dcblock[1][22]~q , \dcbuf[0][0].dcblock[1][21]~q , \dcbuf[0][0].dcblock[1][20]~q , \dcbuf[0][0].dcblock[1][19]~q , \dcbuf[0][0].dcblock[1][18]~q , \dcbuf[0][0].dcblock[1][17]~q , \dcbuf[0][0].dcblock[1][16]~q , \dcbuf[0][0].dcblock[1][15]~q , \dcbuf[0][0].dcblock[1][14]~q , \dcbuf[0][0].dcblock[1][13]~q , \dcbuf[0][0].dcblock[1][12]~q , \dcbuf[0][0].dcblock[1][11]~q , \dcbuf[0][0].dcblock[1][10]~q , \dcbuf[0][0].dcblock[1][9]~q , \dcbuf[0][0].dcblock[1][8]~q , \dcbuf[0][0].dcblock[1][7]~q , \dcbuf[0][0].dcblock[1][6]~q , \dcbuf[0][0].dcblock[1][5]~q , \dcbuf[0][0].dcblock[1][4]~q , \dcbuf[0][0].dcblock[1][3]~q , \dcbuf[0][0].dcblock[1][2]~q , \dcbuf[0][0].dcblock[1][1]~q , \dcbuf[0][0].dcblock[1][0]~q } )} block01
+quietly virtual signal -install /system_tb/DUT/CPU/DP/EXMM { (concat_range (0 to 28) )( (context /system_tb/DUT/CPU/DP/EXMM )&{mmifALUOut_31 , mmifALUOut_30 , mmifALUOut_29 , mmifALUOut_28 , mmifALUOut_27 , mmifALUOut_26 , mmifALUOut_25 , mmifALUOut_24 , mmifALUOut_23 , mmifALUOut_22 , mmifALUOut_21 , mmifALUOut_20 , mmifALUOut_19 , mmifALUOut_18 , mmifALUOut_17 , mmifALUOut_16 , mmifALUOut_15 , mmifALUOut_14 , mmifALUOut_13 , mmifALUOut_12 , mmifALUOut_11 , mmifALUOut_10 , mmifALUOut_9 , mmifALUOut_8 , mmifALUOut_7 , mmifALUOut_6 , mmifALUOut_5 , mmifALUOut_4 , mmifALUOut_3 } )} aluout
+quietly virtual signal -install /system_tb/DUT/RAM { (concat_range (0 to 18) )( (context /system_tb/DUT/RAM )&{ramaddr18 , ramaddr17 , ramaddr16 , ramaddr15 , ramaddr14 , ramaddr13 , ramaddr12 , ramaddr11 , ramaddr10 , ramaddr9 , ramaddr8 , ramaddr7 , ramaddr6 , ramaddr5 , ramaddr4 , ramaddr3 , ramaddr2 , ramaddr1 , ramaddr } )} ramaddr_temp
+quietly virtual signal -install /system_tb/DUT/CPU/CM/DCACHE { (concat_range (0 to 2) )( (context /system_tb/DUT/CPU/CM/DCACHE )&{mmifALUOut_5 , mmifALUOut_4 , mmifALUOut_3 } )} index
+quietly virtual signal -install /system_tb/DUT/CPU/CM/DCACHE { (concat_range (0 to 31) )( (context /system_tb/DUT/CPU/CM/DCACHE )&{\dcbuf[6][0].dcblock[0][31]~q , \dcbuf[6][0].dcblock[0][30]~q , \dcbuf[6][0].dcblock[0][29]~q , \dcbuf[6][0].dcblock[0][28]~q , \dcbuf[6][0].dcblock[0][27]~q , \dcbuf[6][0].dcblock[0][26]~q , \dcbuf[6][0].dcblock[0][25]~q , \dcbuf[6][0].dcblock[0][24]~q , \dcbuf[6][0].dcblock[0][23]~q , \dcbuf[6][0].dcblock[0][22]~q , \dcbuf[6][0].dcblock[0][21]~q , \dcbuf[6][0].dcblock[0][20]~q , \dcbuf[6][0].dcblock[0][19]~q , \dcbuf[6][0].dcblock[0][18]~q , \dcbuf[6][0].dcblock[0][17]~q , \dcbuf[6][0].dcblock[0][16]~q , \dcbuf[6][0].dcblock[0][15]~q , \dcbuf[6][0].dcblock[0][14]~q , \dcbuf[6][0].dcblock[0][13]~q , \dcbuf[6][0].dcblock[0][12]~q , \dcbuf[6][0].dcblock[0][11]~q , \dcbuf[6][0].dcblock[0][10]~q , \dcbuf[6][0].dcblock[0][9]~q , \dcbuf[6][0].dcblock[0][8]~q , \dcbuf[6][0].dcblock[0][7]~q , \dcbuf[6][0].dcblock[0][6]~q , \dcbuf[6][0].dcblock[0][5]~q , \dcbuf[6][0].dcblock[0][4]~q , \dcbuf[6][0].dcblock[0][3]~q , \dcbuf[6][0].dcblock[0][2]~q , \dcbuf[6][0].dcblock[0][1]~q , \dcbuf[6][0].dcblock[0][0]~q } )} dcbuf60
+quietly virtual signal -install /system_tb/DUT/CPU/CM/DCACHE { (concat_range (0 to 30) )( (context /system_tb/DUT/CPU/CM/DCACHE )&{\dcbuf[6][0].dcblock[1][31]~q , \dcbuf[6][0].dcblock[1][30]~q , \dcbuf[6][0].dcblock[1][29]~q , \dcbuf[6][0].dcblock[1][28]~q , \dcbuf[6][0].dcblock[1][27]~q , \dcbuf[6][0].dcblock[1][26]~q , \dcbuf[6][0].dcblock[1][25]~q , \dcbuf[6][0].dcblock[1][24]~q , \dcbuf[6][0].dcblock[1][23]~q , \dcbuf[6][0].dcblock[1][22]~q , \dcbuf[6][0].dcblock[1][21]~q , \dcbuf[6][0].dcblock[1][20]~q , \dcbuf[6][0].dcblock[1][19]~q , \dcbuf[6][0].dcblock[1][18]~q , \dcbuf[6][0].dcblock[1][17]~q , \dcbuf[6][0].dcblock[1][16]~q , \dcbuf[6][0].dcblock[1][15]~q , \dcbuf[6][0].dcblock[1][14]~q , \dcbuf[6][0].dcblock[1][13]~q , \dcbuf[6][0].dcblock[1][12]~q , \dcbuf[6][0].dcblock[1][11]~q , \dcbuf[6][0].dcblock[1][10]~q , \dcbuf[6][0].dcblock[1][9]~q , \dcbuf[6][0].dcblock[1][8]~q , \dcbuf[6][0].dcblock[1][7]~q , \dcbuf[6][0].dcblock[1][6]~q , \dcbuf[6][0].dcblock[1][5]~q , \dcbuf[6][0].dcblock[1][4]~q , \dcbuf[6][0].dcblock[1][3]~q , \dcbuf[6][0].dcblock[1][2]~q , \dcbuf[6][0].dcblock[1][1]~q } )} dcblock61
 quietly WaveActivateNextPane {} 0
 add wave -noupdate /system_tb/CLK
 add wave -noupdate -group DCU /system_tb/DUT/CPU/CM/DCACHE/DCU/stateCTSTORE
@@ -40,10 +45,10 @@ add wave -noupdate -group DCU {/system_tb/DUT/CPU/CM/DCACHE/DCU/\statechange~q }
 add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/hitcountout
 add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/wbifhalt
 add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/cif_dstore
-add wave -noupdate -expand -group state /system_tb/DUT/CPU/CM/DCACHE/stateHALT
-add wave -noupdate -expand -group state /system_tb/DUT/CPU/CM/DCACHE/stateREAD2
-add wave -noupdate -expand -group state /system_tb/DUT/CPU/CM/DCACHE/stateREAD1
-add wave -noupdate -expand -group state /system_tb/DUT/CPU/CM/DCACHE/stateCTSTORE
+add wave -noupdate -group state /system_tb/DUT/CPU/CM/DCACHE/stateHALT
+add wave -noupdate -group state /system_tb/DUT/CPU/CM/DCACHE/stateREAD2
+add wave -noupdate -group state /system_tb/DUT/CPU/CM/DCACHE/stateREAD1
+add wave -noupdate -group state /system_tb/DUT/CPU/CM/DCACHE/stateCTSTORE
 add wave -noupdate /system_tb/DUT/RAM/ramload3
 add wave -noupdate /system_tb/DUT/RAM/ram_store
 add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/DCU/mmifdWENi
@@ -52,10 +57,17 @@ add wave -noupdate /system_tb/DUT/RAM/addr
 add wave -noupdate /system_tb/DUT/CPU/DP/IFID/instr001
 add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/block01
 add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/dcblock00
+add wave -noupdate /system_tb/DUT/CPU/DP/HU/hcifIFIDEN
+add wave -noupdate /system_tb/DUT/CPU/DP/EXMM/aluout
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/index
+add wave -noupdate /system_tb/DUT/RAM/ramaddr_temp
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/stateREAD2
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/dcbuf60
+add wave -noupdate /system_tb/DUT/CPU/CM/DCACHE/dcblock61
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {2314823 ps} 0}
+WaveRestoreCursors {{Cursor 1} {3724449 ps} 0}
 quietly wave cursor active 1
-configure wave -namecolwidth 438
+configure wave -namecolwidth 535
 configure wave -valuecolwidth 169
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -69,4 +81,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {2169 ns} {2673 ns}
+WaveRestoreZoom {0 ps} {10500 ns}
