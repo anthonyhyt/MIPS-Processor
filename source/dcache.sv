@@ -20,7 +20,7 @@ module dcache (
   //counter signals
     //flush counter signal
   logic flctup;
-  logic [3:0] flnum;
+  logic [4:0] flnum;
     //hit counter signal
   logic hitctup, hitctdn, hitctout;
   word_t hitnum;
@@ -42,10 +42,6 @@ module dcache (
   word_t cacheout;              //data selected from cache to store
   word_t memaddr, cacheaddr, dpaddr;//address select variables
 
-  //temp use variable for generation of dirties
-  genvar i, j;
-  logic [15:0] alldirties;
-
   //major component instantiation and declaration -----------------
   dc_set_t dcbuf [7:0];
   logic lru [7:0];
@@ -53,17 +49,17 @@ module dcache (
     CLK, nRST,
     hitctup, hitctdn, hitnum
   );
-  flex_counter #(.BITS(4)) CLRCT (
+  flex_counter #(.BITS(5)) CLRCT (
     CLK, nRST,
     flctup, 1'b0, flnum
   );
   dcache_cu DCU (
     CLK, nRST,
-    dirty, dirties,
+    dirty,
     dhit, cif.dwait,
     dcif.dmemREN, dcif.dmemWEN, dcif.halt,
     cif.dREN, cif.dWEN,
-    flctup, hitctup, hitctdn, hitctout,
+    flctup, flnum, hitctup, hitctdn, hitctout,
     cublof, invalid,
     flushing, dcif.flushed
   );
@@ -79,14 +75,6 @@ module dcache (
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
-  assign dirties = |alldirties;
-  generate
-    for (i = 0; i < 8; i++) begin:outer
-      for (j = 0; j < 2; j++) begin:inner
-        assign alldirties[2*i+j] = (dcbuf[i][j].dcvalid & dcbuf[i][j].dcdirty);
-      end
-    end
-  endgenerate
 
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;

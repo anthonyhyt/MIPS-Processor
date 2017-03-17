@@ -1,10 +1,11 @@
 module dcache_cu (
   input logic CLK, nRST,
-  input logic dirty, dirties,
+  input logic dirty,
   input logic dhit, dwait,
   input logic dmemREN, dmemWEN, flush,      //signal from dp
   output logic dREN, dWEN,                  //signal to mem
   output logic flctup,                      //flush counter
+  input logic [4:0] flctout,
   output logic hitctup, hitctdn, hitctout,  //hit counter
   output logic blof, invalid,
   output logic flushing, halt
@@ -81,13 +82,13 @@ module dcache_cu (
     casez(state)
       //normal operation
       IDLE:    nxtstate = miss ? (dirty ? WB1 : READ1) :
-                        (flush ? (dirties ? FLUSH1 : CTSTORE) : state);
+                        (flush ? FLUSH1 : state);
       WB1:     nxtstate = ~dwait ? WB2 : state;
       WB2:     nxtstate = ~dwait ? READ1 : state;
       READ1:   nxtstate = ~dwait ? READ2 : state;
       READ2:   nxtstate = ~dwait ? IDLE : state;
       //flush and halt operation
-      FLUSH1:  nxtstate = dirties ? (~dwait ? FLUSH2 : state) : CTSTORE;
+      FLUSH1:  nxtstate = flctout != 5'h10 ? (~dwait ? FLUSH2 : state) : CTSTORE;
       FLUSH2:  nxtstate = ~dwait ? FLUSH1 : state;
       CTSTORE: nxtstate = ~dwait ? HALT : state;
       HALT:    nxtstate = IDLE;
