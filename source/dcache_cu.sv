@@ -13,7 +13,7 @@ module dcache_cu (
 
   typedef enum logic [3:0] {
     IDLE, WB1, WB2, MISSCT, READ1, READ2,
-    FLUSH1, FLUSH2, FLCT, CTSTORE, HALT
+    FLSTART, FLUSH1, FLUSH2, FLCT, CTSTORE, HALT
   } state_t;
 
   state_t state, nxtstate;
@@ -60,18 +60,21 @@ module dcache_cu (
         blof = 1'b1;
       end
       //flush and halt operation
-      FLUSH1: begin
-        dWEN = dirty;
-        flctup = ~dirty;
+      FLSTART: begin
         flushing = 1'b1;
       end
-      FLUSH2: begin
-        dWEN = 1'b1;
+      FLUSH1: begin
         flushing = 1'b1;
-        blof = 1'b1;
+        dWEN = 1'b1;
         invalid = 1'b1;
       end
+      FLUSH2: begin
+        flushing = 1'b1;
+        dWEN = 1'b1;
+        blof = 1'b1;
+      end
       FLCT: begin
+        flushing = 1'b1;
         flctup = 1'b1;
       end
       CTSTORE: begin
@@ -87,16 +90,17 @@ module dcache_cu (
     casez(state)
       //normal operation
       IDLE:    nxtstate = miss ? (dirty ? WB1 : MISSCT) :
-                        (flush ? FLUSH1 : state);
+                        (flush ? FLSTART : state);
       WB1:     nxtstate = ~dwait ? WB2 : state;
       WB2:     nxtstate = ~dwait ? MISSCT : state;
       MISSCT:  nxtstate = ~dwait ? READ2 : READ1;
       READ1:   nxtstate = ~dwait ? READ2 : state;
       READ2:   nxtstate = ~dwait ? IDLE : state;
       //flush and halt operation
-      FLUSH1:  nxtstate = flctout != 5'h10 ? (~dwait ? FLUSH2 : state) : CTSTORE;
+      FLSTART: nxtstate = flctout != 5'h10 ? (dirty ? FLUSH1 : FLCT) : CTSTORE;
+      FLUSH1:  nxtstate = ~dwait ? FLUSH2 : state;
       FLUSH2:  nxtstate = ~dwait ? FLCT : state;
-      FLCT:    nxtstate = FLUSH1;
+      FLCT:    nxtstate = FLSTART;
       CTSTORE: nxtstate = ~dwait ? HALT : state;
       HALT:    nxtstate = IDLE;
       default: nxtstate = IDLE;
