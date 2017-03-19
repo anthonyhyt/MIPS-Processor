@@ -47,7 +47,7 @@ module dcache (
   logic lru [7:0];
   flex_counter #(.BITS(32)) HITCT (
     CLK, nRST,
-    hitctup, hitctdn, hitnum
+    hitctup&dhit&(dcif.dmemREN|dcif.dmemWEN), hitctdn, hitnum
   );
   flex_counter #(.BITS(5)) CLRCT (
     CLK, nRST,

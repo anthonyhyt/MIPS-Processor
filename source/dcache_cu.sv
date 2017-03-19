@@ -12,12 +12,12 @@ module dcache_cu (
 );
 
   typedef enum logic [3:0] {
-    IDLE = 4'h0, WB1 = 4'h1, WB2 = 4'h3, READ1 = 4'h2, READ2 = 4'h4,
-    FLUSH1 = 4'h8, FLUSH2 = 4'hC, CTSTORE = 4'hA, HALT = 4'hE
+    IDLE, WB1, WB2, MISSCT, READ1, READ2,
+    FLUSH1, FLUSH2, FLCT, CTSTORE, HALT
   } state_t;
 
   state_t state, nxtstate;
-  logic statechange, miss;
+  logic miss;
 
   //some combinational logic
   assign miss = (dmemREN | dmemWEN) & ~dhit;
@@ -37,20 +37,23 @@ module dcache_cu (
     casez(state)
       //normal operation
       IDLE: begin
-        hitctup = (dmemREN | dmemWEN) & dhit;
+        hitctup = 1'b1;
       end
       WB1: begin
         dWEN = 1'b1;
-        invalid = statechange;
+        invalid = 1'b1;
       end
       WB2: begin
         dWEN = 1'b1;
         blof = 1'b1;
       end
+      MISSCT: begin
+        dREN = 1'b1;
+        invalid = 1'b1;
+        hitctdn = 1'b1;
+      end
       READ1: begin
         dREN = 1'b1;
-        invalid = statechange;
-        hitctdn = statechange;
       end
       READ2: begin
         dREN = 1'b1;
@@ -66,8 +69,10 @@ module dcache_cu (
         dWEN = 1'b1;
         flushing = 1'b1;
         blof = 1'b1;
-        invalid = statechange;
-        flctup = statechange;
+        invalid = 1'b1;
+      end
+      FLCT: begin
+        flctup = 1'b1;
       end
       CTSTORE: begin
         dWEN = 1'b1;
@@ -81,15 +86,17 @@ module dcache_cu (
   begin:transition_logic
     casez(state)
       //normal operation
-      IDLE:    nxtstate = miss ? (dirty ? WB1 : READ1) :
+      IDLE:    nxtstate = miss ? (dirty ? WB1 : MISSCT) :
                         (flush ? FLUSH1 : state);
       WB1:     nxtstate = ~dwait ? WB2 : state;
-      WB2:     nxtstate = ~dwait ? READ1 : state;
+      WB2:     nxtstate = ~dwait ? MISSCT : state;
+      MISSCT:  nxtstate = ~dwait ? READ2 : READ1;
       READ1:   nxtstate = ~dwait ? READ2 : state;
       READ2:   nxtstate = ~dwait ? IDLE : state;
       //flush and halt operation
       FLUSH1:  nxtstate = flctout != 5'h10 ? (~dwait ? FLUSH2 : state) : CTSTORE;
-      FLUSH2:  nxtstate = ~dwait ? FLUSH1 : state;
+      FLUSH2:  nxtstate = ~dwait ? FLCT : state;
+      FLCT:    nxtstate = FLUSH1;
       CTSTORE: nxtstate = ~dwait ? HALT : state;
       HALT:    nxtstate = IDLE;
       default: nxtstate = IDLE;
@@ -102,14 +109,6 @@ module dcache_cu (
       state <= IDLE;
     else
       state <= nxtstate;
-  end
-
-  always_ff @ (posedge CLK, negedge nRST)
-  begin:statechangeff
-    if (~nRST)
-      statechange <= 1'b0;
-    else
-      statechange <= (state != nxtstate);
   end
 
 endmodule
