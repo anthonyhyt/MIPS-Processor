@@ -43,7 +43,8 @@ module dcache (
   word_t memaddr, cacheaddr, dpaddr;//address select variables
 
   //major component instantiation and declaration -----------------
-  dc_set_t dcbuf [7:0];
+  dc_set_t [7:0] dcbuf;
+  dc_set_t [7:0] nxtdcbuf;
   logic lru [7:0];
   flex_counter #(.BITS(32)) HITCT (
     CLK, nRST,
@@ -106,22 +107,28 @@ module dcache (
 
     //data caches flip-flops
   assign cacheWEN = ~flushing & (dhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
+  always_comb
+  begin
+    nxtdcbuf = dcbuf;
+    if (cacheWEN) begin
+      nxtdcbuf[ind][waysel].dctag = addr.dcpctag;
+      nxtdcbuf[ind][waysel].dcblock[blksel] = srcsel;
+      if (dcif.dmemWEN & dhit)
+        nxtdcbuf[ind][waysel].dcdirty = 1'b1;
+      else if (~cif.dwait & blksel & cif.dREN) begin
+        nxtdcbuf[ind][waysel].dcvalid = 1'b1;
+        nxtdcbuf[ind][waysel].dcdirty = 1'b0;
+      end
+    end
+    if (invalid)
+      nxtdcbuf[ind][waysel].dcvalid = 1'b0;
+  end
   always_ff @ (posedge CLK, negedge nRST)
   begin
-    if (~nRST) begin
-      dcbuf <= '{default: '0};
-    end else if (cacheWEN) begin
-      dcbuf[ind][waysel].dctag <= addr.dcpctag;
-      dcbuf[ind][waysel].dcblock[blksel] <= srcsel;
-      if (dcif.dmemWEN & dhit)
-        dcbuf[ind][waysel].dcdirty <= 1'b1;
-      else if (~cif.dwait & blksel & cif.dREN) begin
-        dcbuf[ind][waysel].dcvalid <= 1'b1;
-        dcbuf[ind][waysel].dcdirty <= 1'b0;
-      end else if (invalid)
-        dcbuf[ind][waysel].dcvalid <= 1'b0;
-    end else if (invalid)
-      dcbuf[ind][waysel].dcvalid <= 1'b0;
+    if (~nRST)
+      dcbuf <= '0;
+    else
+      dcbuf <= nxtdcbuf;
   end
 
     //lru flip-flops
