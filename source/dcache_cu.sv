@@ -102,7 +102,7 @@ module dcache_cu (
       FLUSH2:  nxtstate = ~dwait ? FLCT : state;
       FLCT:    nxtstate = FLSTART;
       CTSTORE: nxtstate = ~dwait ? HALT : state;
-      HALT:    nxtstate = IDLE;
+      HALT:    nxtstate = state;
       default: nxtstate = IDLE;
     endcase
   end
