@@ -39,13 +39,17 @@ module coherence_control (
     end else if (state == CCREQ && c.ramstate == FREE) begin
       if (c.iREN[0] && ~c.iREN[1]) iserve <= 1'b0;
       else if (c.iREN[1] && ~c.iREN[0]) iserve <= 1'b1;
-      else if (c.iREN[0] && c.iREN[1]) iserve <= iserve + 1;
+      //else if (c.iREN[0] && c.iREN[1]) iserve <= iserve + 1;
+      else iserve <= iserve;
+      dserve <= dserve;
+    end else if (state == CCREQ && c.ramstate == ACCESS) begin
+      if (c.iREN[0] && c.iREN[1]) iserve <= iserve + 1;
       else iserve <= iserve;
       dserve <= dserve;
     // dserve change
     end else if (state == CCARB) begin
-      if (c.iREN[0]) dserve <= 1'b0;
-      else if (c.iREN[1]) dserve <= 1'b1;
+      if (c.dWEN[0] && ~c.cctrans[0]) dserve <= 1'b0;
+      else if (c.dWEN[1] && ~c.cctrans[1]) dserve <= 1'b1;
       else if (c.cctrans[0]) dserve <= 1'b0;
       else dserve <= 1'b1;
       iserve <= iserve;
@@ -104,37 +108,37 @@ module coherence_control (
         c.ramstore = '0;
         c.iwait[iserve] = (c.ramstate != ACCESS);
         c.iwait[~iserve] = 1'b1;
-        c.dwait = '{1'b1};
+        c.dwait = '1;
         c.iload[iserve] = c.ramload;
         c.iload[~iserve] = '0;
-        c.dload = '{'0};
-        c.ccwait = '{1'b0};
-        c.ccinv = '{1'b0};
-        c.ccsnoopaddr = '{'0};
+        c.dload = '0;
+        c.ccwait = '0;
+        c.ccinv = '0;
+        c.ccsnoopaddr = '0;
       end
       CCARB: begin
         c.ramWEN = 1'b0;
         c.ramREN = 1'b0;
         c.ramaddr = '0;
         c.ramstore = '0;
-        c.iwait = '{1'b1};
-        c.dwait = '{1'b1};
-        c.iload = '{'0};
-        c.dload = '{'0};
-        c.ccwait = '{1'b0};
-        c.ccinv = '{1'b0};
-        c.ccsnoopaddr = '{'0};
+        c.iwait = '1;
+        c.dwait = '1;
+        c.iload = '0;
+        c.dload = '0;
+        c.ccwait = '0;
+        c.ccinv = '0;
+        c.ccsnoopaddr = '0;
       end
       CCSNP: begin
         c.ramWEN = 1'b0;
         c.ramREN = 1'b0;
         c.ramaddr = '0;
         c.ramstore = '0;
-        c.iwait = '{1'b1};
-        c.dwait = '{1'b1};
-        c.iload = '{'0};
-        c.dload = '{'0};
-        c.ccwait = '{1'b1};
+        c.iwait = '1;
+        c.dwait = '1;
+        c.iload = '0;
+        c.dload = '0;
+        c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
         c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];
         c.ccsnoopaddr[0] = c.daddr[dserve];
@@ -145,13 +149,13 @@ module coherence_control (
         c.ramREN = 1'b0;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = c.dstore[dserve];
-        c.iwait = '{1'b1};
+        c.iwait = '1;
         c.dwait[dserve] = (c.ramstate != ACCESS);
         c.dwait[~dserve] = 1'b1;
-        c.iload = '{'0};
-        c.dload = '{'0};
-        c.ccwait = '{1'b1};
-        c.ccinv = '{1'b0};
+        c.iload = '0;
+        c.dload = '0;
+        c.ccwait = '1;
+        c.ccinv = '0;
         c.ccsnoopaddr[0] = c.daddr[dserve];
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end
@@ -160,12 +164,12 @@ module coherence_control (
         c.ramREN = 1'b0;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = c.dstore[~dserve];
-        c.iwait = '{1'b1};
+        c.iwait = '1;
         c.dwait[0] = (c.ramstate != ACCESS);
         c.dwait[1] = (c.ramstate != ACCESS);
-        c.iload = '{'0};
-        c.dload = '{'0};
-        c.ccwait = '{1'b1};
+        c.iload = '0;
+        c.dload = '0;
+        c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
         c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];
         c.ccsnoopaddr[0] = c.daddr[dserve];
@@ -176,13 +180,13 @@ module coherence_control (
         c.ramREN = 1'b1;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = '0;
-        c.iwait = '{1'b1};
+        c.iwait = '1;
         c.dwait[dserve] = (c.ramstate != ACCESS);
-        c.dwait[dserve] = 1'b1;
-        c.iload = '{'0};
+        c.dwait[~dserve] = 1'b1;
+        c.iload = '0;
         c.dload[dserve] = c.ramload;
         c.dload[~dserve] = '0;
-        c.ccwait = '{1'b1};
+        c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
         c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];
         c.ccsnoopaddr[0] = c.daddr[dserve];
@@ -193,13 +197,13 @@ module coherence_control (
         c.ramREN = 1'b0;
         c.ramaddr = '0;
         c.ramstore = '0;
-        c.iwait = '{1'b1};
-        c.dwait = '{1'b1};
-        c.iload = '{'0};
-        c.dload = '{'0};
-        c.ccwait = '{1'b0};
-        c.ccinv = '{1'b0};
-        c.ccsnoopaddr = '{'0};
+        c.iwait = '1;
+        c.dwait = '1;
+        c.iload = '0;
+        c.dload = '0;
+        c.ccwait = '0;
+        c.ccinv = '0;
+        c.ccsnoopaddr = '0;
       end
     endcase
   end

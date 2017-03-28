@@ -65,8 +65,14 @@ program test(
     working = 1;
     fork
     begin
-      msiSignalOutput(core[0], readOrWrite1, cif[0].ccwait, cif[0].cctrans, cif[0].ccwrite);
-      msiSignalOutput(core[1], readOrWrite2, cif[1].ccwait, cif[1].cctrans, cif[1].ccwrite);
+      fork
+      begin
+        msiSignalOutput1;
+      end
+      begin
+        msiSignalOutput2;
+      end
+      join
     end
     begin
       //pure write request from core 1 to mem addr 0x00000000
@@ -75,12 +81,14 @@ program test(
       readOrWrite1 = 1;
       dreq1(readOrWrite1, 32'h00000000, 32'h12345678, dload1);
       core[0] = I;
+      #(PERIOD);
       //pure write request from core 2 to mem addr 0x00000004
       testcases++;
       core[1] = M;
       readOrWrite2 = 1;
       dreq2(readOrWrite2, 32'h00000004, 32'h87654321, dload2);
       core[1] = I;
+      #(PERIOD);
 
       //read request from both core at mem addr 0x00000000
       testcases++;
@@ -99,6 +107,7 @@ program test(
         while (cif[0].ccwait | cif[1].ccwait) #(PERIOD);
       end
       join
+      #(PERIOD);
 
       //core 1 write to mem addr 0x00000000
       testcases++;
@@ -114,7 +123,7 @@ program test(
       dreq2(readOrWrite2, 32'h00000000, 32'h5A5A5A5A, dload2);
       core[1] = M;
       core[0] = I;
-      #(PERIOD);
+      #(PERIOD*2);
 
       //instruction and data request happened simotaneourly
       testcases++;
@@ -140,8 +149,10 @@ program test(
       end
       join
       working = 0;
+      #(PERIOD);
     end
     join
+    $finish;
 
   end
 
@@ -186,8 +197,22 @@ program test(
   begin
     cif[coreNum].iaddr = addr;
     cif[coreNum].iREN = 1;
-    while(cif[coreNum].iwait) #(PERIOD);
-    iload = cif[coreNum].iload;
+    fork
+    begin
+      while(cif[coreNum].iwait) #(PERIOD);
+      iload = cif[coreNum].iload;
+    end
+    begin
+      for (int i = 0; i < 20; i++) begin
+          if (i == 19) $display("ERROR: Time out in loading instruction, %d",
+testcases);
+          #(PERIOD);
+      end
+    end
+    join_any;
+    disable fork;
+    #(PERIOD);
+    cif[coreNum].iREN = 0;
   end
   endtask
 
@@ -198,8 +223,22 @@ program test(
   begin
     cif[coreNum].iaddr = addr;
     cif[coreNum].iREN = 1;
-    while(cif[coreNum].iwait) #(PERIOD);
-    iload = cif[coreNum].iload;
+    fork
+    begin
+      while(cif[coreNum].iwait) #(PERIOD);
+      iload = cif[coreNum].iload;
+    end
+    begin
+      for (int i = 0; i < 20; i++) begin
+          if (i == 19) $display("ERROR: Time out in loading instruction, %d",
+testcases);
+          #(PERIOD);
+      end
+    end
+    join_any;
+    disable fork;
+    #(PERIOD);
+    cif[coreNum].iREN = 0;
   end
   endtask
 
@@ -218,10 +257,22 @@ program test(
       cif[coreNum].dstore = dstore;
     end
     cif[coreNum].daddr = addr;
-    while(cif[coreNum].dwait) #(PERIOD);
+    fork
+    begin
+      while(cif[coreNum].dwait) #(PERIOD);
+      dload = cif[coreNum].dload;
+    end
+    begin
+      for (int i = 0; i < 20; i++) begin
+          if (i == 19) $display("ERROR: Time out in loading data, %d", testcases);
+          #(PERIOD);
+      end
+    end
+    join_any;
+    disable fork;
+    #(PERIOD);
     cif[coreNum].dWEN = 0;
     cif[coreNum].dREN = 0;
-    dload = cif[coreNum].dload;
   end
   endtask
 
@@ -240,55 +291,93 @@ program test(
       cif[coreNum].dstore = dstore;
     end
     cif[coreNum].daddr = addr;
-    while(cif[coreNum].dwait) #(PERIOD);
+    fork
+    begin
+      while(cif[coreNum].dwait) #(PERIOD);
+      dload = cif[coreNum].dload;
+    end
+    begin
+      for (int i = 0; i < 20; i++) begin
+          if (i == 19) $display("ERROR: Time out in loading data, %d", testcases);
+          #(PERIOD);
+      end
+    end
+    join_any;
+    disable fork;
+    #(PERIOD);
     cif[coreNum].dWEN = 0;
     cif[coreNum].dREN = 0;
-    dload = cif[coreNum].dload;
   end
   endtask
 
-  task msiSignalOutput;
-    input msi_t msi;
-    input logic readOrWrite;
-    input logic ccwait;
-    output logic cctrans;
-    output logic ccwrite;
+  task msiSignalOutput1;
   begin
     while (working) begin
-    if (msi == I) begin
-      if (ccwait) begin   //this core is servicing response
-        cctrans = 0;
-        ccwrite = 0;
-      end else if (readOrWrite) begin //deal with processor request
-        cctrans = 1;
-        ccwrite = 1;
+    if (core[0] == I) begin
+      if (cif[0].ccwait) begin   //this core is servicing response
+        cif[0].cctrans = 0;
+        cif[0].ccwrite = 0;
+      end else if (readOrWrite1) begin //deal with processor request
+        cif[0].cctrans = 1;
+        cif[0].ccwrite = 1;
       end else begin
-        cctrans = 1;
-        ccwrite = 0;
+        cif[0].cctrans = 1;
+        cif[0].ccwrite = 0;
       end
-    end else if (msi == S) begin
-      if (ccwait) begin
-        cctrans = 0;
-        ccwrite = 0;
+    end else if (core[0] == S) begin
+      if (cif[0].ccwait) begin
+        cif[0].cctrans = 0;
+        cif[0].ccwrite = 0;
       end else begin
-        if (readOrWrite) begin
-          cctrans = 1;
-          ccwrite = 1;
+        if (readOrWrite1) begin
+          cif[0].cctrans = 1;
+          cif[0].ccwrite = 1;
         end else begin
-          cctrans = 0;
-          ccwrite = 0;
+          cif[0].cctrans = 0;
+          cif[0].ccwrite = 0;
         end
       end
-    end else if (msi == M) begin
-      if (ccwait) begin
-        cctrans = 0;
-        ccwrite = 1;
-      end else begin
-        cctrans = 0;
-        ccwrite = 0;
-      end
+    end else if (core[0] == M) begin
+      cif[0].cctrans = 0;
+      cif[0].ccwrite = 1;
     end
-    #(PERIOD);
+    #(PERIOD* 0.5);
+    end
+  end
+  endtask
+
+  task msiSignalOutput2;
+  begin
+    while (working) begin
+    if (core[1] == I) begin
+      if (cif[1].ccwait) begin   //this core is servicing response
+        cif[1].cctrans = 0;
+        cif[1].ccwrite = 0;
+      end else if (readOrWrite2) begin //deal with processor request
+        cif[1].cctrans = 1;
+        cif[1].ccwrite = 1;
+      end else begin
+        cif[1].cctrans = 1;
+        cif[1].ccwrite = 0;
+      end
+    end else if (core[1] == S) begin
+      if (cif[1].ccwait) begin
+        cif[1].cctrans = 0;
+        cif[1].ccwrite = 0;
+      end else begin
+        if (readOrWrite2) begin
+          cif[1].cctrans = 1;
+          cif[1].ccwrite = 1;
+        end else begin
+          cif[1].cctrans = 0;
+          cif[1].ccwrite = 0;
+        end
+      end
+    end else if (core[1] == M) begin
+      cif[1].cctrans = 0;
+      cif[1].ccwrite = 1;
+    end
+    #(PERIOD* 0.5);
     end
   end
   endtask

@@ -34,7 +34,7 @@ add wave -noupdate -group cif0 {/coherence_control_tb/PROG/cif[0]/ccinv}
 add wave -noupdate -group cif0 {/coherence_control_tb/PROG/cif[0]/ccwrite}
 add wave -noupdate -group cif0 {/coherence_control_tb/PROG/cif[0]/cctrans}
 add wave -noupdate -group cif0 {/coherence_control_tb/PROG/cif[0]/ccsnoopaddr}
-add wave -noupdate /coherence_control_tb/PROG/core
+add wave -noupdate -expand /coherence_control_tb/PROG/core
 add wave -noupdate /coherence_control_tb/PROG/working
 add wave -noupdate /coherence_control_tb/PROG/readOrWrite1
 add wave -noupdate /coherence_control_tb/PROG/readOrWrite2
@@ -42,9 +42,10 @@ add wave -noupdate /coherence_control_tb/PROG/dload1
 add wave -noupdate /coherence_control_tb/PROG/dload2
 add wave -noupdate /coherence_control_tb/PROG/iload1
 add wave -noupdate /coherence_control_tb/PROG/iload2
+add wave -noupdate /coherence_control_tb/DUT/state
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {0 ps} 0}
-quietly wave cursor active 0
+WaveRestoreCursors {{Cursor 1} {358668 ps} 0}
+quietly wave cursor active 1
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -59,4 +60,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {7513443 ns}
+WaveRestoreZoom {0 ps} {735 ns}
