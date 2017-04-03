@@ -11,9 +11,13 @@ module dcache (
   caches_if.dcache cif,
   datapath_cache_if.dcache dcif
 );
-  //types import
+  //types import and define
   import caches_types_pkg::*;
   import cpu_types_pkg::*;
+
+  typedef enum logic [1:0] {
+    I = 2'b0x, S = 2'b10, M = 2'b11
+  } msi_t;
 
   //variable declaration -----------------------------------------
 
@@ -21,9 +25,6 @@ module dcache (
     //flush counter signal
   logic flctup;
   logic [4:0] flnum;
-    //hit counter signal
-  logic hitctup, hitctdn, hitctout;
-  word_t hitnum;
 
   //signal for entering final flush phase
   logic flushing;
@@ -39,17 +40,17 @@ module dcache (
   word_t srcsel;                //source select for cache write
     //cache to mem select
   logic cacheWEN;
-  word_t cacheout;              //data selected from cache to store
-  word_t memaddr, cacheaddr, dpaddr;//address select variables
+  word_t cacheaddr, dpaddr;     //address select variables
+
+  //multicore variables
+  logic pccwait, ccwaitedge;
+  logic invalids;
+  msi_t msi;
 
   //major component instantiation and declaration -----------------
   dc_set_t [7:0] dcbuf;
   dc_set_t [7:0] nxtdcbuf;
   logic lru [7:0];
-  flex_counter #(.BITS(32)) HITCT (
-    CLK, nRST,
-    hitctup&dhit&(dcif.dmemREN|dcif.dmemWEN), hitctdn, hitnum
-  );
   flex_counter #(.BITS(5)) CLRCT (
     CLK, nRST,
     flctup, 1'b0, flnum
@@ -59,20 +60,52 @@ module dcache (
     dirty,
     dhit, cif.dwait,
     dcif.dmemREN, dcif.dmemWEN, dcif.halt,
+    cif.ccwait, cif.ccwrite,
     cif.dREN, cif.dWEN,
-    flctup, flnum, hitctup, hitctdn, hitctout,
+    flctup, flnum,
     cublof, invalid,
     flushing, dcif.flushed
   );
 
   //variable cast -------------------------------------------------
   dc_pc_t addr;
-  assign addr = dc_pc_t'(dcif.dmemaddr);
+  assign addr = dc_pc_t'(cif.ccwait ? cif.ccsnoopaddr : dcif.dmemaddr);
 
   //data caches configuration -------------------------------------
-    //assignment for unused signals in multicore
-  assign cif.ccwrite = 1'b0;
-  assign cif.cctrans = 1'b0;
+    //MSI state generation
+  assign msi = msi_t'({dcbuf[ind][waysel].dcvalid, dcbuf[ind][waysel].dcdirty});
+
+    //msi signals to bus
+  always_comb
+  begin
+    cif.cctrans = 0;
+    cif.ccwrite = 0;
+    if (msi == I) begin
+      if (~cif.ccwait & dcif.dmemREN) begin
+        cif.cctrans = 1;
+        cif.ccwrite = 0;
+      end else if (~cif.ccwait & dcif.dmemWEN) begin
+        cif.cctrans = 1;
+        cif.ccwrite = 1;
+      end
+    end else if (msi == S) begin
+      if (~cif.ccwait & dcif.dmemWEN) begin
+        cif.cctrans = 1;
+        cif.ccwrite = 1;
+      end
+    end else if (msi == M) begin
+      if (cif.ccwait) begin
+        cif.cctrans = 0;
+        cif.ccwrite = 1;
+      end
+    end
+  end
+
+    //ccwait falling edge detector output
+  assign ccwaitedge = ~cif.ccwait & pccwait;
+
+    //set all invalidate condition
+  assign invalids = invalid | (cif.ccwait & cif.ccinv);
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
@@ -80,14 +113,13 @@ module dcache (
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
-  assign dhit = dhit0 | dhit1;
+  assign dhit = dcif.dmemWEN&~dirty ? ccwaitedge&(dhit0|dhit1) : dhit0|dhit1;
   assign dcif.dhit = dhit;
 
     //cache store source select
   assign srcsel = dhit ? dcif.dmemstore : cif.dload;
 
     //word_t in cache select
-    //!!! all word_t select should use these signals
   assign ind = flushing ? flnum[3:1] : addr.dcpcind;
   assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0 : lru[ind]);
   assign blksel = dhit ? addr.dcpcblof : cublof;
@@ -96,14 +128,12 @@ module dcache (
   assign dcif.dmemload = dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
-  assign cacheout = dcbuf[ind][waysel].dcblock[cublof];
-  assign cif.dstore = hitctout ? hitnum : cacheout;
+  assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
 
     //memory address select
   assign cacheaddr = {dcbuf[ind][waysel].dctag, ind, cublof, 2'b00};//write back use address in cache tag
   assign dpaddr = {dcif.dmemaddr[31:3], cublof, 2'b00};             //load value use address from datapath
-  assign memaddr = cif.dWEN ? cacheaddr : dpaddr;
-  assign cif.daddr = hitctout ? 32'h00003100 : memaddr;
+  assign cif.daddr = cif.dWEN ? cacheaddr : dpaddr;
 
     //data caches flip-flops
   assign cacheWEN = ~flushing & (dhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
@@ -120,8 +150,12 @@ module dcache (
         nxtdcbuf[ind][waysel].dcdirty = 1'b0;
       end
     end
-    if (invalid)
+    if (invalids)
       nxtdcbuf[ind][waysel].dcvalid = 1'b0;
+    if (msi == M & cif.ccwait & ~cif.ccinv) begin
+      nxtdcbuf[ind][waysel].dcvalid = 1'b1;
+      nxtdcbuf[ind][waysel].dcdirty = 1'b0;
+    end
   end
   always_ff @ (posedge CLK, negedge nRST)
   begin
@@ -138,6 +172,13 @@ module dcache (
       lru <= '{default: '0};
     else if (dhit & (dcif.dmemREN | dcif.dmemWEN))
       lru[ind] <= dhit0;
+  end
+
+    //ccwait fall edge detector
+  always_ff @ (posedge CLK, negedge nRST)
+  begin
+    if (~nRST) pccwait <= '0;
+    else pccwait <= cif.ccwait;
   end
 
 endmodule
