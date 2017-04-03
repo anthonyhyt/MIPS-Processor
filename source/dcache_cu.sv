@@ -38,19 +38,19 @@ module dcache_cu (
       end
       WB1: begin
         dWEN = 1'b1;
-        invalid = 1'b1;
       end
       WB2: begin
         dWEN = 1'b1;
         blof = 1'b1;
+        invalid = 1'b1;
       end
       WB3: begin
         dWEN = 1'b1;
-        invalid = 1'b1;
       end
       WB4: begin
         dWEN = 1'b1;
         blof = 1'b1;
+        invalid = 1'b1;
       end
       READ1: begin
         dREN = 1'b1;
@@ -66,12 +66,12 @@ module dcache_cu (
       FLUSH1: begin
         flushing = 1'b1;
         dWEN = 1'b1;
-        invalid = 1'b1;
       end
       FLUSH2: begin
         flushing = 1'b1;
         dWEN = 1'b1;
         blof = 1'b1;
+        invalid = 1'b1;
       end
       FLCT: begin
         flushing = 1'b1;

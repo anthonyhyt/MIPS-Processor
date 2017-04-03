@@ -172,7 +172,8 @@ module coherence_control (
         c.dwait[0] = (c.ramstate != ACCESS);
         c.dwait[1] = (c.ramstate != ACCESS);
         c.iload = '0;
-        c.dload = '0;
+        c.dload[dserve] = c.dstore[~dserve];
+        c.dload[~dserve] = '0;
         c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
         c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];

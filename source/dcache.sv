@@ -45,7 +45,7 @@ module dcache (
   //multicore variables
   logic pccwait, ccend;
   logic MStoI, MtoS;
-  logic ccing;
+  logic ccing, ccdhit;
   msi_t msi;
 
   //major component instantiation and declaration -----------------
@@ -116,15 +116,16 @@ module dcache (
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
-  assign dhit = ~ccing & (dhit0|dhit1);
-  assign dcif.dhit = dhit;
+  assign dhit = dhit0 | dhit1;
+  assign ccdhit = ~ccing & dhit;
+  assign dcif.dhit = ccdhit;
 
     //cache store source select
   assign srcsel = dhit ? dcif.dmemstore : cif.dload;
 
     //word_t in cache select
   assign ind = flushing ? flnum[3:1] : addr.dcpcind;
-  assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0 : lru[ind]);
+  assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0:lru[ind]);
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
@@ -139,14 +140,14 @@ module dcache (
   assign cif.daddr = cif.dWEN ? cacheaddr : dpaddr;
 
     //data caches flip-flops
-  assign cacheWEN = ~flushing & (dhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
+  assign cacheWEN = ~flushing & (ccdhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
   always_comb
   begin
     nxtdcbuf = dcbuf;
     if (cacheWEN) begin
       nxtdcbuf[ind][waysel].dctag = addr.dcpctag;
       nxtdcbuf[ind][waysel].dcblock[blksel] = srcsel;
-      if (dcif.dmemWEN & dhit)
+      if (dcif.dmemWEN & ccdhit)
         nxtdcbuf[ind][waysel].dcdirty = 1'b1;
       else if (~cif.dwait & blksel & cif.dREN) begin
         nxtdcbuf[ind][waysel].dcvalid = 1'b1;
@@ -173,7 +174,7 @@ module dcache (
   begin
     if (~nRST)
       lru <= '{default: '0};
-    else if (dhit & (dcif.dmemREN | dcif.dmemWEN))
+    else if (ccdhit & (dcif.dmemREN | dcif.dmemWEN))
       lru[ind] <= dhit0;
   end
 
