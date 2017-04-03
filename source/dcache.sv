@@ -44,7 +44,7 @@ module dcache (
 
   //multicore variables
   logic pccwait, ccwaitedge;
-  logic invalids;
+  logic MStoI, MtoS;
   msi_t msi;
 
   //major component instantiation and declaration -----------------
@@ -104,8 +104,9 @@ module dcache (
     //ccwait falling edge detector output
   assign ccwaitedge = ~cif.ccwait & pccwait;
 
-    //set all invalidate condition
-  assign invalids = invalid | (cif.ccwait & cif.ccinv);
+    //set all msi state transition condition
+  assign MStoI = invalid | (cif.ccwait & cif.ccinv);
+  assign MtoS = msi == M & cif.ccwait & ~cif.ccinv;
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
@@ -113,7 +114,7 @@ module dcache (
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
-  assign dhit = dcif.dmemWEN&~dirty ? ccwaitedge&(dhit0|dhit1) : dhit0|dhit1;
+  assign dhit = dcif.dmemWEN&msi==S ? ccwaitedge&(dhit0|dhit1) : dhit0|dhit1;
   assign dcif.dhit = dhit;
 
     //cache store source select
@@ -150,9 +151,9 @@ module dcache (
         nxtdcbuf[ind][waysel].dcdirty = 1'b0;
       end
     end
-    if (invalids)
+    if (MStoI)
       nxtdcbuf[ind][waysel].dcvalid = 1'b0;
-    if (msi == M & cif.ccwait & ~cif.ccinv) begin
+    else if (MtoS) begin
       nxtdcbuf[ind][waysel].dcvalid = 1'b1;
       nxtdcbuf[ind][waysel].dcdirty = 1'b0;
     end
