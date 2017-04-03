@@ -14,8 +14,11 @@
 
 module memory_control (
   input logic CLK, nRST,
-  cache_control_if.cc ccif
+  cache_control_if ccif
 );
+
+  coherence_control CC(CLK, nRST, ccif);
+/*
   // type import
   import cpu_types_pkg::*;
 
@@ -46,6 +49,6 @@ module memory_control (
   assign ccif.ccwait = '0;
   assign ccif.ccinv = '0;
   assign ccif.ccsnoopaddr = '0;
-
+*/
 
 endmodule

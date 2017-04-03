@@ -16,7 +16,7 @@ module dcache (
   import cpu_types_pkg::*;
 
   typedef enum logic [1:0] {
-    I = 2'b0x, S = 2'b10, M = 2'b11
+    I1 = 2'b00, I2 = 2'b01,  S = 2'b10, M = 2'b11
   } msi_t;
 
   //variable declaration -----------------------------------------
@@ -43,8 +43,9 @@ module dcache (
   word_t cacheaddr, dpaddr;     //address select variables
 
   //multicore variables
-  logic pccwait, ccwaitedge;
+  logic pccwait, ccend;
   logic MStoI, MtoS;
+  logic ccing;
   msi_t msi;
 
   //major component instantiation and declaration -----------------
@@ -80,7 +81,7 @@ module dcache (
   begin
     cif.cctrans = 0;
     cif.ccwrite = 0;
-    if (msi == I) begin
+    if (msi == I1 | msi == I2) begin
       if (~cif.ccwait & dcif.dmemREN) begin
         cif.cctrans = 1;
         cif.ccwrite = 0;
@@ -101,8 +102,9 @@ module dcache (
     end
   end
 
-    //ccwait falling edge detector output
-  assign ccwaitedge = ~cif.ccwait & pccwait;
+    //detect if under cc procedure
+  assign ccend = ~cif.ccwait & pccwait;
+  assign ccing = cif.ccwait | ~ccend & (cif.cctrans | cif.ccwrite);
 
     //set all msi state transition condition
   assign MStoI = invalid | (cif.ccwait & cif.ccinv);
@@ -114,7 +116,7 @@ module dcache (
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
-  assign dhit = dcif.dmemWEN&msi==S ? ccwaitedge&(dhit0|dhit1) : dhit0|dhit1;
+  assign dhit = ~ccing & (dhit0|dhit1);
   assign dcif.dhit = dhit;
 
     //cache store source select

@@ -85,7 +85,7 @@ module dcache_cu (
   begin:transition_logic
     casez(state)
       //normal operation
-      IDLE:    nxtstate = miss ? (dirty ? WB1 : READ1) :
+      IDLE:    nxtstate = miss & ~ccwait ? (dirty ? WB1 : READ1) :
                         (flush ? FLSTART : (meminvalid ? WB3 : state));
       WB1:     nxtstate = ~dwait ? WB2 : state;
       WB2:     nxtstate = ~dwait ? READ1 : state;

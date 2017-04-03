@@ -21,6 +21,7 @@ module coherence_control (
 
   // service registers
   logic iserve, dserve;
+  logic iserve_w;
 
   // state machine state names
   typedef enum logic [2:0] {
@@ -29,6 +30,9 @@ module coherence_control (
 
   // state machine
   cc_state_t state, nxstate;
+
+  // instruction service wire assignment
+  assign iserve_w = ^c.iREN ? c.iREN[1] : iserve;
 
   // service register logic
   always_ff @ (posedge CLK, negedge nRST) begin
@@ -104,13 +108,13 @@ module coherence_control (
       CCREQ: begin
         c.ramWEN = 1'b0;
         c.ramREN = c.iREN[0] | c.iREN[1];
-        c.ramaddr = c.iaddr[iserve];
+        c.ramaddr = c.iaddr[iserve_w];
         c.ramstore = '0;
-        c.iwait[iserve] = (c.ramstate != ACCESS);
-        c.iwait[~iserve] = 1'b1;
+        c.iwait[iserve_w] = (c.ramstate != ACCESS);
+        c.iwait[~iserve_w] = 1'b1;
         c.dwait = '1;
-        c.iload[iserve] = c.ramload;
-        c.iload[~iserve] = '0;
+        c.iload[iserve_w] = c.ramload;
+        c.iload[~iserve_w] = '0;
         c.dload = '0;
         c.ccwait = '0;
         c.ccinv = '0;
