@@ -111,9 +111,10 @@ program test(
 
       //core 1 write to mem addr 0x00000000
       testcases++;
-      core[0] = M;
+      readOrWrite1 = 1;
       #(PERIOD * 2);
       while (cif[0].ccwait | cif[1].ccwait) #(PERIOD);
+      core[0] = M;
       core[1] = I;
       #(PERIOD);
 
