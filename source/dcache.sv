@@ -32,7 +32,6 @@ module dcache (
   //cache flip flops signals
   logic cublof;                 //block offset from state machine
   logic dhit, dhit0, dhit1;     //dhit is combinational output
-  logic idle;
   logic dirty, dirties;         //dirty signal
   logic invalid;                //invalid valid bit when WB start
     //specific word select
@@ -44,7 +43,7 @@ module dcache (
   word_t cacheaddr, dpaddr;     //address select variables
 
   //multicore variables
-  logic pccwait, ccwaitedge, pccinv, isinvhigh;
+  logic pccwait, ccend;
   logic MStoI, MtoS;
   logic ccing, ccdhit;
   msi_t msi, msireg;
@@ -65,7 +64,7 @@ module dcache (
     cif.ccwait, cif.ccwrite, cif.ccinv,
     cif.dREN, cif.dWEN,
     flctup, flnum,
-    cublof, invalid, idle,
+    cublof, invalid,
     flushing, dcif.flushed
   );
 
@@ -88,7 +87,7 @@ module dcache (
         cif.ccwrite = 0;
       end else if (~cif.ccwait & dcif.dmemWEN) begin
         cif.cctrans = 1;
-        cif.ccwrite = 1;
+        cif.ccwrite = 0;
       end
     end else if (msi == S) begin
       if (~cif.ccwait & dcif.dmemWEN) begin
@@ -104,11 +103,11 @@ module dcache (
   end
 
     //detect if under cc procedure
-  assign ccwaitedge = ~cif.ccwait & pccwait;
-  assign ccend = msi != M & ~isinvhigh & ccwaitedge;
+  assign ccend = ~cif.ccwait & pccwait;
+  assign ccing = cif.ccwait | ~ccend & (cif.cctrans | cif.ccwrite);
 
     //set all msi state transition condition
-  assign MStoI = invalid;
+  assign MStoI = invalid | (cif.ccwait & cif.ccinv);
   assign MtoS = msi == M & cif.ccwait & ~cif.ccinv;
 
     //dirties signal generation
@@ -179,21 +178,11 @@ module dcache (
       lru[ind] <= dhit0;
   end
 
-    //ccwait and ccinv fall edge detector
+    //ccwait fall edge detector
   always_ff @ (posedge CLK, negedge nRST)
   begin
-    if (~nRST) begin
-      pccwait <= '0;
-      pccinv <= '0;
-      isinvhigh <= '0;
-    end else begin
-      pccwait <= cif.ccwait;
-      pccinv <= cif.ccinv;
-      if (cif.ccwait & (cif.ccinv ^ pccinv))
-        isinvhigh <= 1'b1;
-      else if (ccwaitedge)
-        isinvhigh <= '0;
-    end
+    if (~nRST) pccwait <= '0;
+    else pccwait <= cif.ccwait;
   end
 
     //msi stage register

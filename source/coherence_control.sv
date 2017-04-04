@@ -164,18 +164,16 @@ module coherence_control (
         c.iload = '0;
         c.dload = '0;
         c.ccwait = '1;
-        /*
         if (busRdX[0] && busRdX[1] && c.daddr[0] != c.daddr[1]) begin
           c.ccinv = '1;
           c.ccsnoopaddr[0] = c.daddr[1];
           c.ccsnoopaddr[1] = c.daddr[0];
         end else begin
-        */
           c.ccinv[dserve] = 1'b0;
           c.ccinv[~dserve] = busRdX[dserve];
           c.ccsnoopaddr[0] = c.daddr[dserve];
           c.ccsnoopaddr[1] = c.daddr[dserve];
-        //end
+        end
       end
       CCCTR: begin
         c.ramWEN = c.dWEN[dserve];
