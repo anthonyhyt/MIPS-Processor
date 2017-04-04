@@ -61,7 +61,7 @@ module dcache (
     dirty,
     dhit, cif.dwait,
     dcif.dmemREN, dcif.dmemWEN, dcif.halt,
-    cif.ccwait, cif.ccwrite,
+    cif.ccwait, cif.ccwrite, cif.ccinv,
     cif.dREN, cif.dWEN,
     flctup, flnum,
     cublof, invalid,
