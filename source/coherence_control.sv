@@ -149,7 +149,7 @@ module coherence_control (
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end
       CCCTR: begin
-        c.ramWEN = c.dREN[dserve] | c.dWEN[dserve];
+        c.ramWEN = c.dWEN[dserve];
         c.ramREN = 1'b0;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = c.dstore[dserve];
@@ -164,7 +164,7 @@ module coherence_control (
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end
       CCCTC: begin
-        c.ramWEN = c.dREN[dserve] | c.dWEN[dserve];
+        c.ramWEN = c.dREN[dserve];
         c.ramREN = 1'b0;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = c.dstore[~dserve];
@@ -182,7 +182,7 @@ module coherence_control (
       end
       CCRTC: begin
         c.ramWEN = 1'b0;
-        c.ramREN = 1'b1;
+        c.ramREN = c.dREN[dserve];
         c.ramaddr = c.daddr[dserve];
         c.ramstore = '0;
         c.iwait = '1;

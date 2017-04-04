@@ -7,13 +7,13 @@ module dcache_cu (
   output logic dREN, dWEN,                  //signal to mem
   output logic flctup,                      //flush counter
   input logic [4:0] flctout,
-  output logic blof, invalid,
+  output logic blof, invalid, idle,
   output logic flushing, halt
 );
 
   typedef enum logic [3:0] {
     IDLE, WB1, WB2, WB3, WB4, READ1, READ2,
-    FLSTART, FLUSH1, FLUSH2, FLCT, HALT
+    WAIT, FLSTART, FLUSH1, FLUSH2, FLCT, HALT
   } state_t;
 
   state_t state, nxtstate;
@@ -32,9 +32,11 @@ module dcache_cu (
     halt = 1'b0;
     blof = 1'b0;
     invalid = 1'b0;
+    idle = 1'b0;
     casez(state)
       //normal operation
       IDLE: begin
+        idle = 1'b1;
       end
       WB1: begin
         dWEN = 1'b1;
@@ -90,9 +92,10 @@ module dcache_cu (
       WB1:     nxtstate = ~dwait ? WB2 : state;
       WB2:     nxtstate = ~dwait ? READ1 : state;
       WB3:     nxtstate = ~dwait ? WB4 : state;
-      WB4:     nxtstate = ~dwait ? IDLE : state;
+      WB4:     nxtstate = ~dwait ? WAIT : state;
       READ1:   nxtstate = ~dwait ? READ2 : state;
-      READ2:   nxtstate = ~dwait ? IDLE : state;
+      READ2:   nxtstate = ~dwait ? WAIT : state;
+      WAIT:   nxtstate = ~ccwait ? IDLE : state;
       //flush and halt operation
       FLSTART: nxtstate = flctout != 5'h10 ? (dirty ? FLUSH1 : FLCT) : HALT;
       FLUSH1:  nxtstate = ~dwait ? FLUSH2 : state;
