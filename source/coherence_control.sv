@@ -84,7 +84,7 @@ module coherence_control (
         else nxstate = state;
       end
       CCCTC: begin
-        if (~c.dWEN[dserve] && ~c.dREN[dserve] && c.ramstate == ACCESS)
+        if (~c.dWEN[dserve] && ~c.dREN[dserve])
           nxstate = CCREQ;
         else nxstate = state;
       end
@@ -149,7 +149,7 @@ module coherence_control (
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end
       CCCTR: begin
-        c.ramWEN = 1'b1;
+        c.ramWEN = c.dREN[dserve] | c.dWEN[dserve];
         c.ramREN = 1'b0;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = c.dstore[dserve];
@@ -164,7 +164,7 @@ module coherence_control (
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end
       CCCTC: begin
-        c.ramWEN = 1'b1;
+        c.ramWEN = c.dREN[dserve] | c.dWEN[dserve];
         c.ramREN = 1'b0;
         c.ramaddr = c.daddr[dserve];
         c.ramstore = c.dstore[~dserve];
