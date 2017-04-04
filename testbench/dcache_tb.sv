@@ -86,9 +86,6 @@ module dcache_tb;
   // reset all flag
   task rstf;
     begin
-      while (~dc.dhit)
-        wc;
-      wc; // enable will be reset in next cycle when dhit provided
       c.dwait = 1'b1;
       dc.dmemREN = 1'b0;
       dc.dmemWEN = 1'b0;
@@ -96,6 +93,25 @@ module dcache_tb;
       c.ccinv = 1'b0;
       c.ccsnoopaddr = '0;
       wc;
+    end
+  endtask
+
+  task lwready;
+    begin
+      fork
+      begin
+        while (~dc.dhit)
+          wc;
+      end
+      begin
+        for (int i = 0; i < 20; i++) begin
+          if (i == 19) $display ("ERROR: dhit not set after lw finished");
+          #(PERIOD);
+        end
+      end
+      join_any;
+      disable fork;
+      wc; // enable will be reset in next cycle when dhit provided
     end
   endtask
 
@@ -208,6 +224,8 @@ begin
   wc; // wait for load
   wc; // go to CCREQ
   disp;
+  scc(1'b0, 1'b0, 32'h00000000);
+  lwready;
   rstf;
   wc;
 
@@ -283,17 +301,6 @@ begin
   wc; // go to CCREQ
   scc(1'b0, 1'b0, 32'h00000000);
   wc;
-  // store to 0b0004, continued - not served
-  $display ("Saving 1 word (storing) - not served");
-  disp;
-  wc; // go to CCARB
-  wc; // go to CCSNP
-  scc(1'b1, 1'b0, 32'h00000004);
-  wc; // go to CCRTC
-  disp;
-  wc; // go to CCREQ
-  scc(1'b0, 1'b0, 32'h00000000);
-  wc;
   // store to 0b0004, continued - gets served
   // store, hit
   $display ("Saving 1 word (storing) - served");
@@ -303,26 +310,29 @@ begin
   scc(1'b1, 1'b0, 32'h00000004);
   wc; // go to CCRTC
   disp;
+  wc; // go to CCREQ
+  rstf;
+  wc;
+  wc;
 
+  // the other cache write - goes to invalid
+  // write back
+  $display ("Other cache write - to invalid");
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b1, 32'h00000000);
+  wc; // go to CCCTC
+  disp;
+  sm;
+  disp;
+  sm;
+  disp;
+  wc; // go to CCREQ
+  rstf;
+  wc;
 
   // flush
   flush;
 
 end
 endprogram
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -58,6 +58,8 @@ module coherence_control (
       if (c.dWEN[0] && ~c.cctrans[0]) dserve <= 1'b0;
       else if (c.dWEN[1] && ~c.cctrans[1]) dserve <= 1'b1;
       else if (busRdX[0]) dserve <= 1'b0;
+      else if (busRdX[1]) dserve <= 1'b1;
+      else if (busRd[0]) dserve <= 1'b0;
       else dserve <= 1'b1;
       iserve <= iserve;
     end else begin
