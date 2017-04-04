@@ -32,7 +32,6 @@ module dcache (
   //cache flip flops signals
   logic cublof;                 //block offset from state machine
   logic dhit, dhit0, dhit1;     //dhit is combinational output
-  logic idle;
   logic dirty, dirties;         //dirty signal
   logic invalid;                //invalid valid bit when WB start
     //specific word select
@@ -65,7 +64,7 @@ module dcache (
     cif.ccwait, cif.ccwrite,
     cif.dREN, cif.dWEN,
     flctup, flnum,
-    cublof, invalid, idle,
+    cublof, invalid,
     flushing, dcif.flushed
   );
 
@@ -88,7 +87,7 @@ module dcache (
         cif.ccwrite = 0;
       end else if (~cif.ccwait & dcif.dmemWEN) begin
         cif.cctrans = 1;
-        cif.ccwrite = 1;
+        cif.ccwrite = 0;
       end
     end else if (msi == S) begin
       if (~cif.ccwait & dcif.dmemWEN) begin
@@ -118,7 +117,7 @@ module dcache (
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
   assign dhit = dhit0 | dhit1;
-  assign ccdhit = ~ccing & dhit & idle;
+  assign ccdhit = ~ccing & dhit;
   assign dcif.dhit = ccdhit;
 
     //cache store source select
@@ -126,8 +125,8 @@ module dcache (
 
     //word_t in cache select
   assign ind = flushing ? flnum[3:1] : addr.dcpcind;
-  assign waysel = flushing ? flnum[0] : (ccdhit ? ~dhit0:lru[ind]);
-  assign blksel = ccdhit ? addr.dcpcblof : cublof;
+  assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0:lru[ind]);
+  assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
   assign dcif.dmemload = dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];

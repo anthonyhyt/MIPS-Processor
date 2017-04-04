@@ -164,7 +164,7 @@ module coherence_control (
         c.iload = '0;
         c.dload = '0;
         c.ccwait = '1;
-        if (&busRdX && c.daddr[0] != c.daddr[1]) begin
+        if (busRdX[0] && busRdX[1] && c.daddr[0] != c.daddr[1]) begin
           c.ccinv = '1;
           c.ccsnoopaddr[0] = c.daddr[1];
           c.ccsnoopaddr[1] = c.daddr[0];
