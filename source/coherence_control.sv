@@ -19,9 +19,12 @@ module coherence_control (
   // type import
   import cpu_types_pkg::*;
 
-  // service registers
+  // service registers and wire
   logic iserve, dserve;
   logic iserve_w;
+
+  // busRead and busReadX registers
+  logic [1:0] busRd, busRdX;
 
   // state machine state names
   typedef enum logic [2:0] {
@@ -54,12 +57,28 @@ module coherence_control (
     end else if (state == CCARB) begin
       if (c.dWEN[0] && ~c.cctrans[0]) dserve <= 1'b0;
       else if (c.dWEN[1] && ~c.cctrans[1]) dserve <= 1'b1;
-      else if (c.cctrans[0]) dserve <= 1'b0;
+      else if (busRdX[0]) dserve <= 1'b0;
       else dserve <= 1'b1;
       iserve <= iserve;
     end else begin
       iserve <= iserve;
       dserve <= dserve;
+    end
+  end
+
+  // busRead and busReadX register logic
+  always_ff @ (posedge CLK, negedge nRST) begin
+    if (nRST == 0) begin
+      busRd <= '0;
+      busRdX <= '0;
+    end else if (state == CCARB) begin
+      busRd[0] <= c.cctrans[0] & ~c.ccwrite[0];
+      busRd[1] <= c.cctrans[1] & ~c.ccwrite[1];
+      busRdX[0] <= c.cctrans[0] & c.ccwrite[0];
+      busRdX[1] <= c.cctrans[1] & c.ccwrite[1];
+    end else begin
+      busRd <= busRd;
+      busRdX <= busRdX;
     end
   end
 
@@ -143,10 +162,16 @@ module coherence_control (
         c.iload = '0;
         c.dload = '0;
         c.ccwait = '1;
-        c.ccinv[dserve] = 1'b0;
-        c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];
-        c.ccsnoopaddr[0] = c.daddr[dserve];
-        c.ccsnoopaddr[1] = c.daddr[dserve];
+        if (&busRdX && c.daddr[0] != c.daddr[1]) begin
+          c.ccinv = '1;
+          c.ccsnoopaddr[0] = c.daddr[1];
+          c.ccsnoopaddr[1] = c.daddr[0];
+        end else begin
+          c.ccinv[dserve] = 1'b0;
+          c.ccinv[~dserve] = busRdX[dserve];
+          c.ccsnoopaddr[0] = c.daddr[dserve];
+          c.ccsnoopaddr[1] = c.daddr[dserve];
+        end
       end
       CCCTR: begin
         c.ramWEN = c.dWEN[dserve];
@@ -176,7 +201,7 @@ module coherence_control (
         c.dload[~dserve] = '0;
         c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
-        c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];
+        c.ccinv[~dserve] = busRdX[dserve];
         c.ccsnoopaddr[0] = c.daddr[dserve];
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end
@@ -193,7 +218,7 @@ module coherence_control (
         c.dload[~dserve] = '0;
         c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
-        c.ccinv[~dserve] = c.cctrans[dserve] & c.ccwrite[dserve];
+        c.ccinv[~dserve] = busRdX[dserve];
         c.ccsnoopaddr[0] = c.daddr[dserve];
         c.ccsnoopaddr[1] = c.daddr[dserve];
       end

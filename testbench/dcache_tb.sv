@@ -190,8 +190,119 @@ initial
 begin
   init;
 
+  // load from 0b0000, 0b0100, no coherence controller inference
+  // miss followed by hit
+  $display ("Loading 2 words - no cc");
+  lw(32'h00000000);
+  wc; // output cctrans
+  disp;
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b0, 32'h00000000);
+  wc; // go to CCRTC
+  disp;
+  lm(32'hAAAAAAAA);
+  wc; // wait for load
+  disp;
+  lm(32'hBBBBBBBB);
+  wc; // wait for load
+  wc; // go to CCREQ
+  disp;
+  rstf;
+  wc;
 
+  // store to 0b0000, gets served
+  // hit
+  $display ("Saving 1 word - served");
+  sw(32'h00000000, 32'hA0A0A0A0);
+  wc; // output cctrans and ccwrite
+  disp;
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b0, 32'h00000000);
+  wc; // go to CCRTC
+  disp;
+  wc; // go to CCREQ
+  rstf;
+  wc;
 
+  // the other cache read - goes to share
+  // write back
+  $display ("Other cache read - to share");
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b0, 32'h00000000);
+  wc; // go to CCCTC
+  disp;
+  sm;
+  disp;
+  sm;
+  disp;
+  wc; // go to CCREQ
+  rstf;
+  wc;
+
+  // the other cache write - goes to invalid
+  $display ("Other cache write - to invalid");
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b1, 32'h00000000);
+  wc; // go to CCRTC
+  disp;
+  wc; // go to CCREQ
+  rstf;
+  wc;
+
+  // store to 0b0004 - not served
+  $display ("Saving 1 word (loading) - not served");
+  sw(32'h00000004, 32'hB0B0B0B0);
+  wc; // output cctrans and ccwrite
+  disp;
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b1, 32'h00000004);
+  wc; // go to CCRTC
+  disp;
+  wc; // go to CCREQ
+  scc(1'b0, 1'b0, 32'h00000000);
+  wc;
+  // store to 0b0004, continued - gets served
+  // read, miss followed by hit
+  $display ("Saving 1 word (loading) - served");
+  disp;
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b0, 32'h00000000);
+  wc; // go to CCRTC
+  disp;
+  lm(32'hAAAAAAAA);
+  wc; // wait for load
+  disp;
+  lm(32'hBBBBBBBB);
+  wc; // wait for load
+  wc; // go to CCREQ
+  scc(1'b0, 1'b0, 32'h00000000);
+  wc;
+  // store to 0b0004, continued - not served
+  $display ("Saving 1 word (storing) - not served");
+  disp;
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b0, 32'h00000004);
+  wc; // go to CCRTC
+  disp;
+  wc; // go to CCREQ
+  scc(1'b0, 1'b0, 32'h00000000);
+  wc;
+  // store to 0b0004, continued - gets served
+  // store, hit
+  $display ("Saving 1 word (storing) - served");
+  disp;
+  wc; // go to CCARB
+  wc; // go to CCSNP
+  scc(1'b1, 1'b0, 32'h00000004);
+  wc; // go to CCRTC
+  disp;
 
 
   // flush
