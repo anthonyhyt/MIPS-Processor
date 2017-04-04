@@ -7,7 +7,7 @@ module dcache_cu (
   output logic dREN, dWEN,                  //signal to mem
   output logic flctup,                      //flush counter
   input logic [4:0] flctout,
-  output logic blof, invalid,
+  output logic blof, invalid, idle,
   output logic flushing, halt
 );
 
@@ -32,9 +32,11 @@ module dcache_cu (
     halt = 1'b0;
     blof = 1'b0;
     invalid = 1'b0;
+    idle = 1'b0;
     casez(state)
       //normal operation
       IDLE: begin
+        idle = 1'b1;
       end
       WB1: begin
         dWEN = 1'b1;
