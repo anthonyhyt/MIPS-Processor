@@ -57,9 +57,9 @@ module coherence_control (
     end else if (state == CCARB) begin
       if (c.dWEN[0] && ~c.cctrans[0]) dserve <= 1'b0;
       else if (c.dWEN[1] && ~c.cctrans[1]) dserve <= 1'b1;
-      else if (busRdX[0]) dserve <= 1'b0;
-      else if (busRdX[1]) dserve <= 1'b1;
-      else if (busRd[0]) dserve <= 1'b0;
+      else if (c.cctrans[0] && c.ccwrite[0]) dserve <= 1'b0;
+      else if (c.cctrans[1] && c.ccwrite[1]) dserve <= 1'b1;
+      else if (c.cctrans[0]) dserve <= 1'b0;
       else dserve <= 1'b1;
       iserve <= iserve;
     end else begin

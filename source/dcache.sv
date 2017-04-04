@@ -46,7 +46,7 @@ module dcache (
   logic pccwait, ccend;
   logic MStoI, MtoS;
   logic ccing, ccdhit;
-  msi_t msi;
+  msi_t msi, msireg;
 
   //major component instantiation and declaration -----------------
   dc_set_t [7:0] dcbuf;
@@ -117,7 +117,7 @@ module dcache (
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
   assign dhit = dhit0 | dhit1;
-  assign ccdhit = ~ccing & dhit;
+  assign ccdhit = ~ccing & dhit & (msireg == S || msireg == M || dcif.dmemREN);
   assign dcif.dhit = ccdhit;
 
     //cache store source select
@@ -183,6 +183,14 @@ module dcache (
   begin
     if (~nRST) pccwait <= '0;
     else pccwait <= cif.ccwait;
+  end
+
+    //msi stage register
+  always_ff @ (posedge CLK, negedge nRST)
+  begin
+    if (~nRST) msireg <= I1;
+    else if (~ccing) msireg <= msi;
+    else msireg <= msireg;
   end
 
 endmodule
