@@ -3,7 +3,7 @@ module dcache_cu (
   input logic dirty,
   input logic dhit, dwait,
   input logic dmemREN, dmemWEN, flush,      //signal from dp
-  input logic ccwait, ccwrite,              //signal from mem
+  input logic ccwait, ccwrite, ccinv,       //signal from mem
   output logic dREN, dWEN,                  //signal to mem
   output logic flctup,                      //flush counter
   input logic [4:0] flctout,
@@ -52,7 +52,7 @@ module dcache_cu (
       WB4: begin
         dWEN = 1'b1;
         blof = 1'b1;
-        invalid = 1'b1;
+        invalid = ccinv;
       end
       READ1: begin
         dREN = 1'b1;
