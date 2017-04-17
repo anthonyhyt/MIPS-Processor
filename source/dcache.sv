@@ -135,7 +135,7 @@ module dcache (
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
-  assign dcif.dmemload = dcif.datomic ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
+  assign dcif.dmemload = dcif.datomic & dcif.dmemWEN ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
   assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
@@ -159,7 +159,7 @@ module dcache (
       nxtllvalid = 1'b0;
     end
     if (dcif.dmemWEN & dcif.datomic & ccdhit &
-        llvalid & llreg == cif.ccsnoopaddr) begin
+        llvalid & llreg == dcif.dmemaddr) begin
       success = 1'b1;
     end
   end

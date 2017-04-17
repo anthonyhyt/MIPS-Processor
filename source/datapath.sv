@@ -356,7 +356,7 @@ module datapath (
   assign dpif.dmemstore = mm1if.store;
   assign dpif.imemaddr = pcif.pco;
   assign dpif.dmemaddr = mm1if.ALUOut;
-  assign dpif.datomic = '0; // unused
+  assign dpif.datomic = mm1if.datomic;
 
     // make halt signal a reg
   assign dpif.halt = wbif.halt;

@@ -129,6 +129,7 @@ module control_unit (
 
         if (iti.opcode == SC) begin
           cuif.opfunc = OSC;
+          cuif.MemtoReg = DLOAD;
           cuif.dWENi = 1'b1;
         end
 
