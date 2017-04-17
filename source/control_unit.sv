@@ -121,9 +121,14 @@ module control_unit (
           cuif.dRENi = 1'b1;
         end
 
-        if (iti.opcode == SW || iti.opcode == SC) begin
+        if (iti.opcode == SW) begin
           cuif.opfunc = OSW;
           cuif.RegWEN = 1'b0;
+          cuif.dWENi = 1'b1;
+        end
+
+        if (iti.opcode == SC) begin
+          cuif.opfunc = OSW;
           cuif.dWENi = 1'b1;
         end
 
