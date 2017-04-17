@@ -21,18 +21,19 @@ p0check:
   # check the stack pointer
   ori   $t1, $zero, bsp     # obtain buffer stack pointer addr
   lw    $t0, 0($t1)         # obtain buffer stack pointer value
-  slti  $t2, t0, 0x400
+  slti  $t2, $t0, 0x800
   beq   $t2, $zero, p0check # no valid data in buffer stack
   # lock
-  ori   $a0, $zero, l1      # move lock to arguement register
+  ori   $a0, $zero, lck     # move lock to arguement register
   jal   lock                # try to aquire the lock
   # consistency maintained
   jal   bufpop
   or    $s2, $zero, $v0
   # unlock
-  ori   $a0, $zero, l1      # move lock to arguement register
+  ori   $a0, $zero, lck     # move lock to arguement register
   jal   unlock              # release the lock
-  # post-processing: 1. add to sum, 2. update min and max
+  # post-processing: 1. crop lower 16b 2. add to sum, 3. update min and max
+  andi  $s2, $s2, 0x0000FFFF # crop lower 16b
   add   $s1, $s1, $s2       # add to sum
   ori   $t1, $zero, resmax  # obtain result max addr
   lw    $a0, 0($t1)         # move result max value to argument register
@@ -56,10 +57,10 @@ p0check:
   pop   $ra                 # get return address
   jr    $ra                 # return to caller
 
-l1:
+lck:
   cfw 0x0
 bsp:
-  cfw 0x400
+  cfw 0x800
 
 #----------------------------------------------------------
 # Second Processor - producer
@@ -83,16 +84,16 @@ p1check:
   # check the stack pointer
   ori   $t1, $zero, bsp     # obtain buffer stack pointer addr
   lw    $t0, 0($t1)         # obtain buffer stack pointer value
-  slti  $t2, t0, 0x3dc
+  slti  $t2, $t0, 0x7dc
   bne   $t2, $zero, p1check # buffer stack full
   # lock
-  ori   $a0, $zero, l1      # move lock to arguement register
+  ori   $a0, $zero, lck     # move lock to arguement register
   jal   lock                # try to aquire the lock
   # consistency maintained
   or    $a0, $zero, $s1     # move new random number to argument register
   jal   bufpsh
   # unlock
-  ori   $a0, $zero, l1      # move lock to arguement register
+  ori   $a0, $zero, lck     # move lock to arguement register
   jal   unlock              # release the lock
   # post-processing:
   # loop control
@@ -109,7 +110,7 @@ resavg:
 resmax:
   cfw 0x0                   # max of 256 random numbers
 resmin:
-  cfw 0x0                   # min of 256 random numbers
+  cfw 0xFFFF                # min of 256 random numbers
 
 #----------------------------------------------------------
 # Lock
