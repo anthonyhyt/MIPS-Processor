@@ -35,14 +35,16 @@ module hazard_control_unit (
   // assign local signals
   assign o = hcif.IDopfunc;
 
-  assign use_s_t = (o == OTHERR || o == OBEQ || o == OBNE || o == OSW);
+  assign use_s_t = (o == OTHERR || o == OBEQ || o == OBNE || o == OSW ||
+                   o == OSC);
   assign use_s = (o == OJR || o == OSL || o == OLW || o == OTHERI);
 
   assign lduse_s = (hcif.IDrs == hcif.EXrt);
   assign lduse_t = (hcif.IDrt == hcif.EXrt);
 
-  assign hzd_lwsw   = (hcif.MMopfunc == OLW || hcif.MMopfunc == OSW);
-  assign hzd_lduse  = (hcif.EXopfunc == OLW &&
+  assign hzd_lwsw   = (hcif.MMopfunc == OLW || hcif.MMopfunc == OSW ||
+                      hcif.MMopfunc == OSC);
+  assign hzd_lduse  = ((hcif.EXopfunc == OLW || hcif.EXopfunc == OSC) &&
                       ((use_s_t || use_s) && lduse_s ||
                       use_s_t && lduse_t));
   assign hzd_br     = (hcif.ABtaken ^ hcif.MMtaken);

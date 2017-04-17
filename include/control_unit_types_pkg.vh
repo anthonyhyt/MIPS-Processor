@@ -41,13 +41,13 @@ package control_unit_types_pkg;
     OBNE,
     OSW,
     OLW,
+    OSC,
     OLUI,
     OJ,
     OJAL,
     OTHERR,
     OTHERI,
     OTHERJ,
-    OERROR13,
     OERROR14,
     OERROR15
   } opfunc_t;
