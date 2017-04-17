@@ -58,6 +58,7 @@ module control_unit (
         cuif.dRENi = 1'b0;
         cuif.ExtOp = SHAMEXT;
         cuif.opfunc = OTHERR;
+        cuif.datomic = 1'b0;
         cuif.halt = 1'b0;
 
         if (rti.funct == JR) begin
@@ -98,6 +99,7 @@ module control_unit (
         cuif.dRENi = 1'b0;
         cuif.ExtOp = SIGNEXT;
         cuif.opfunc = OTHERI;
+        cuif.datomic = 1'b0;
         cuif.halt = 1'b0;
 
         if (iti.opcode == BEQ || iti.opcode == BNE) begin
@@ -113,17 +115,20 @@ module control_unit (
           cuif.ExtOp = LUIEXT;
         end
 
-        if (iti.opcode == LW) begin
+        if (iti.opcode == LW || iti.opcode == LL) begin
           cuif.opfunc = OLW;
           cuif.MemtoReg = DLOAD;
           cuif.dRENi = 1'b1;
         end
 
-        if (iti.opcode == SW) begin
+        if (iti.opcode == SW || iti.opcode == SC) begin
           cuif.opfunc = OSW;
           cuif.RegWEN = 1'b0;
           cuif.dWENi = 1'b1;
         end
+
+        if (iti.opcode == LL || iti.opcode == SC)
+          cuif.datomic = 1'b1;
 
         if (iti.opcode == ANDI || iti.opcode == ORI || iti.opcode == XORI)
           cuif.ExtOp = ZEROEXT;
@@ -140,6 +145,8 @@ module control_unit (
           BNE:   cuif.ALUOp = ALU_SUB;
           LW:    cuif.ALUOp = ALU_ADD;
           SW:    cuif.ALUOp = ALU_ADD;
+          LL:    cuif.ALUOp = ALU_ADD;
+          SC:    cuif.ALUOp = ALU_ADD;
           default: cuif.ALUOp = ALU_AND;
         endcase
 
@@ -155,6 +162,7 @@ module control_unit (
         cuif.dRENi = 1'b0;
         cuif.ALUOp = ALU_AND;
         cuif.ExtOp = ZEROEXT;
+        cuif.datomic = 1'b0;
         cuif.halt = 1'b0;
 
         if (jti.opcode == J) begin
@@ -177,6 +185,7 @@ module control_unit (
         cuif.ALUOp = ALU_AND;
         cuif.ExtOp = ZEROEXT;
         cuif.opfunc = OTHERI;
+        cuif.datomic = 1'b0;
         cuif.halt = 1'b1;
 
         //if (cuif.instr == 32'b1) cuif.halt = 1'b1;
@@ -194,6 +203,7 @@ module control_unit (
         cuif.ALUOp = ALU_AND;
         cuif.ExtOp = ZEROEXT;
         cuif.opfunc = OTHERI;
+        cuif.datomic = 1'b0;
         cuif.halt = 1'b0;
 
      end //default

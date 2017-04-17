@@ -27,17 +27,18 @@ interface control_unit_if;
   logic RegWEN, dWENi, dRENi;
   extop_t ExtOp;
   aluop_t ALUOp;
+  logic datomic;
   logic halt;
 
   modport cu (
     input instr, ihit, dhit,
     output opfunc, RegDst, ALUSrc, MemtoReg, RegWEN, dWENi, dRENi,
-           ALUOp, ExtOp, halt
+           ALUOp, ExtOp, datomic, halt
   );
 
   modport tb (
     input opfunc, RegDst, ALUSrc, MemtoReg, RegWEN, dWENi, dRENi,
-          ALUOp, ExtOp, halt,
+          ALUOp, ExtOp, datomic, halt,
     output instr, ihit, dhit
   );
 
