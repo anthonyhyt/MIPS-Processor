@@ -125,6 +125,17 @@ module coherence_control (
 
   // state machine output logic
   always_comb begin: cc_state_output
+    c.ramWEN = 1'b0;
+    c.ramREN = 1'b0;
+    c.ramaddr = '0;
+    c.ramstore = '0;
+    c.iwait = '1;
+    c.dwait = '1;
+    c.iload = '0;
+    c.dload = '0;
+    c.ccwait = '0;
+    c.ccinv = '0;
+    c.ccsnoopaddr = '0;
     casez(state)
       CCREQ: begin
         c.ramWEN = 1'b0;
