@@ -172,6 +172,7 @@ module datapath (
   assign id2if.halt = cuif.halt;
   assign id2if.jaddr = jti.addr;
   assign id2if.taken = id1if.taken;
+  assign id2if.datomic = cuif.datomic;
   assign id2if.rs = rs;
   assign id2if.rt = rt;
   assign id2if.rd = rd;
@@ -189,6 +190,7 @@ module datapath (
   assign ex2if.equal = equal;
   assign ex2if.halt = ex1if.halt;
   assign ex2if.taken = ex1if.taken;
+  assign ex2if.datomic = ex1if.datomic;
   assign ex2if.rd = rw;
   assign ex2if.portB = port_b;
   assign ex2if.npc = ex1if.npc;

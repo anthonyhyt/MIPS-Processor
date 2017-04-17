@@ -13,7 +13,7 @@ interface exmmpipe_if;
   opfunc_t opfunc;
   memtoreg_t MemtoReg;
   logic RegWEN, dWENi, dRENi, en, equal;
-  logic halt, flush, taken;
+  logic halt, flush, taken, datomic;
 
   //register signal
   regbits_t rd;
@@ -23,13 +23,13 @@ interface exmmpipe_if;
 
   modport ex (
     input opfunc, MemtoReg, RegWEN,
-          dWENi, dRENi, en, equal, halt, taken,
+          dWENi, dRENi, en, equal, halt, taken, datomic,
           rd, portB, npc, bpc, ALUOut, store, flush
   );
 
   modport mm (
     output opfunc, MemtoReg, RegWEN,
-          dWENi, dRENi, equal, halt, taken,
+          dWENi, dRENi, equal, halt, taken, datomic,
           rd, portB, npc, bpc, ALUOut, store
   );
 
