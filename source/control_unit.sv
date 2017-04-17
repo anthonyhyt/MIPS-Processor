@@ -128,7 +128,7 @@ module control_unit (
         end
 
         if (iti.opcode == SC) begin
-          cuif.opfunc = OSW;
+          cuif.opfunc = OSC;
           cuif.dWENi = 1'b1;
         end
 
