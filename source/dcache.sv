@@ -27,7 +27,7 @@ module dcache (
   logic [4:0] flnum;
 
   //signal for entering final flush phase
-  logic flushing;
+  logic flushing, dmemWEN, dmemREN;
 
   //cache flip flops signals
   logic cublof;                 //block offset from state machine
@@ -89,15 +89,15 @@ module dcache (
     cif.ccwrite = 0;
     if (~dcif.flushed) begin
       if (msi == I1 | msi == I2) begin
-        if (~cif.ccwait & dcif.dmemREN) begin
+        if (~cif.ccwait & dmemREN) begin
           cif.cctrans = 1;
           cif.ccwrite = 0;
-        end else if (~cif.ccwait & dcif.dmemWEN) begin
+        end else if (~cif.ccwait & dmemWEN) begin
           cif.cctrans = 1;
           cif.ccwrite = 0;
         end
       end else if (msi == S) begin
-        if (~cif.ccwait & dcif.dmemWEN) begin
+        if (~cif.ccwait & dmemWEN) begin
           cif.cctrans = 1;
           cif.ccwrite = 1;
         end
@@ -118,6 +118,10 @@ module dcache (
   assign MStoI = invalid | (cif.ccwait & cif.ccinv);
   assign MtoS = msi == M & cif.ccwait & ~cif.ccinv;
 
+    //block datapath request after halt
+  assign dmemREN = ~flushing & dcif.dmemREN;
+  assign dmemWEN = ~flushing & dcif.dmemWEN;
+
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
 
@@ -125,7 +129,7 @@ module dcache (
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
   assign dhit1 = (addr.dcpctag == dcbuf[ind][1].dctag) & dcbuf[ind][1].dcvalid;
   assign dhit = dhit0 | dhit1;
-  assign ccdhit = ~ccing & dhit & (msireg == S || msireg == M || dcif.dmemREN);
+  assign ccdhit = ~ccing & dhit & (msireg == S || msireg == M || dmemREN);
   assign dcif.dhit = ccdhit;
 
     //cache store source select
@@ -137,7 +141,7 @@ module dcache (
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
-  assign dcif.dmemload = dcif.datomic & dcif.dmemWEN ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
+  assign dcif.dmemload = dcif.datomic & dmemWEN ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
   assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
@@ -153,14 +157,14 @@ module dcache (
     success = 1'b0;
     nxtllvalid = llvalid;
     nxtllreg = llreg;
-    if (dcif.dmemREN & dcif.datomic & ccdhit) begin
+    if (dmemREN & dcif.datomic & ccdhit) begin
       nxtllvalid = 1'b1;
       nxtllreg = dcif.dmemaddr;
     end else if (cif.ccwait & cif.ccinv & llreg == cif.ccsnoopaddr |
-                 dcif.dmemWEN & ccdhit & llreg == dcif.dmemaddr) begin
+                 dmemWEN & ccdhit & llreg == dcif.dmemaddr) begin
       nxtllvalid = 1'b0;
     end
-    if (dcif.dmemWEN & dcif.datomic & ccdhit &
+    if (dmemWEN & dcif.datomic & ccdhit &
         llvalid & llreg == dcif.dmemaddr) begin
       success = 1'b1;
     end
@@ -177,7 +181,7 @@ module dcache (
   end
 
     //data caches flip-flops logic
-  assign atomicWEN = dcif.dmemWEN & (dcif.datomic ? success : 1'b1);
+  assign atomicWEN = dmemWEN & (dcif.datomic ? success : 1'b1);
   assign cacheWEN = ~flushing & (ccdhit ? atomicWEN : ~cif.dwait & cif.dREN);
   always_comb
   begin
@@ -212,7 +216,7 @@ module dcache (
   begin
     if (~nRST)
       lru <= '{default: '0};
-    else if (ccdhit & (dcif.dmemREN | dcif.dmemWEN))
+    else if (ccdhit & (dmemREN | dmemWEN))
       lru[ind] <= dhit0;
   end
 
