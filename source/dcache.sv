@@ -43,10 +43,16 @@ module dcache (
   word_t cacheaddr, dpaddr;     //address select variables
 
   //multicore variables
+    //coherence signal
   logic pccwait, ccend;
   logic MStoI, MtoS;
   logic ccing, ccdhit;
   msi_t msi, msireg;
+
+    //synchronization signal
+  logic llvalid, nxtllvalid;
+  logic success, atomicWEN;
+  word_t llreg, nxtllreg;
 
   //major component instantiation and declaration -----------------
   dc_set_t [7:0] dcbuf;
@@ -129,7 +135,7 @@ module dcache (
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
-  assign dcif.dmemload = dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
+  assign dcif.dmemload = dcif.datomic ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
   assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
@@ -139,15 +145,45 @@ module dcache (
   assign dpaddr = {dcif.dmemaddr[31:3], cublof, 2'b00};             //load value use address from datapath
   assign cif.daddr = cif.dWEN ? cacheaddr : dpaddr;
 
-    //data caches flip-flops
-  assign cacheWEN = ~flushing & (ccdhit ? dcif.dmemWEN : ~cif.dwait & cif.dREN);
+    //load link register
+  always_comb
+  begin
+    success = 1'b0;
+    nxtllvalid = llvalid;
+    nxtllreg = llreg;
+    if (dcif.dREN & dcif.datomic & ccdhit) begin
+      nxtllvalid = 1'b1;
+      nxtllreg = dcif.dmemaddr;
+    end else if (cif.ccwait & llreg == cif.ccsnoopaddr |
+                 dcif.dmemWEN & ccdhit & llreg == dcif.dmemaddr) begin
+      nxtllvalid = 1'b0;
+    end
+    if (dcif.dmemWEN & cif.datomic & ccdhit &
+        llvalid & llreg == cif.ccsnoopaddr) begin
+      success = 1'b1;
+    end
+  end
+  always_ff @ (posedge CLK, negedge nRST)
+  begin
+    if (~nRST) begin
+      llvalid <= 1'b0;
+      llreg <= '0;
+    end else begin
+      llvalid <= nxtllvalid;
+      llreg <= nxtllreg;
+    end
+  end
+
+    //data caches flip-flops logic
+  assign atomicWEN = dcif.dmemWEN & (cif.datomic ? success : 1'b1);
+  assign cacheWEN = ~flushing & (ccdhit ? atomicWEN : ~cif.dwait & cif.dREN);
   always_comb
   begin
     nxtdcbuf = dcbuf;
     if (cacheWEN) begin
       nxtdcbuf[ind][waysel].dctag = addr.dcpctag;
       nxtdcbuf[ind][waysel].dcblock[blksel] = srcsel;
-      if (dcif.dmemWEN & ccdhit)
+      if (atomicWEN && ccdhit)
         nxtdcbuf[ind][waysel].dcdirty = 1'b1;
       else if (~cif.dwait & blksel & cif.dREN) begin
         nxtdcbuf[ind][waysel].dcvalid = 1'b1;
