@@ -87,23 +87,25 @@ module dcache (
   begin
     cif.cctrans = 0;
     cif.ccwrite = 0;
-    if (msi == I1 | msi == I2) begin
-      if (~cif.ccwait & dcif.dmemREN) begin
-        cif.cctrans = 1;
-        cif.ccwrite = 0;
-      end else if (~cif.ccwait & dcif.dmemWEN) begin
-        cif.cctrans = 1;
-        cif.ccwrite = 0;
-      end
-    end else if (msi == S) begin
-      if (~cif.ccwait & dcif.dmemWEN) begin
-        cif.cctrans = 1;
-        cif.ccwrite = 1;
-      end
-    end else if (msi == M) begin
-      if (cif.ccwait) begin
-        cif.cctrans = 0;
-        cif.ccwrite = 1;
+    if (~dcif.flushed) begin
+      if (msi == I1 | msi == I2) begin
+        if (~cif.ccwait & dcif.dmemREN) begin
+          cif.cctrans = 1;
+          cif.ccwrite = 0;
+        end else if (~cif.ccwait & dcif.dmemWEN) begin
+          cif.cctrans = 1;
+          cif.ccwrite = 0;
+        end
+      end else if (msi == S) begin
+        if (~cif.ccwait & dcif.dmemWEN) begin
+          cif.cctrans = 1;
+          cif.ccwrite = 1;
+        end
+      end else if (msi == M) begin
+        if (cif.ccwait) begin
+          cif.cctrans = 0;
+          cif.ccwrite = 1;
+        end
       end
     end
   end
@@ -154,7 +156,7 @@ module dcache (
     if (dcif.dmemREN & dcif.datomic & ccdhit) begin
       nxtllvalid = 1'b1;
       nxtllreg = dcif.dmemaddr;
-    end else if (cif.ccwait & llreg == cif.ccsnoopaddr |
+    end else if (cif.ccwait & cif.ccinv & llreg == cif.ccsnoopaddr |
                  dcif.dmemWEN & ccdhit & llreg == dcif.dmemaddr) begin
       nxtllvalid = 1'b0;
     end
