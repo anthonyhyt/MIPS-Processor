@@ -151,14 +151,14 @@ module dcache (
     success = 1'b0;
     nxtllvalid = llvalid;
     nxtllreg = llreg;
-    if (dcif.dREN & dcif.datomic & ccdhit) begin
+    if (dcif.dmemREN & dcif.datomic & ccdhit) begin
       nxtllvalid = 1'b1;
       nxtllreg = dcif.dmemaddr;
     end else if (cif.ccwait & llreg == cif.ccsnoopaddr |
                  dcif.dmemWEN & ccdhit & llreg == dcif.dmemaddr) begin
       nxtllvalid = 1'b0;
     end
-    if (dcif.dmemWEN & cif.datomic & ccdhit &
+    if (dcif.dmemWEN & dcif.datomic & ccdhit &
         llvalid & llreg == cif.ccsnoopaddr) begin
       success = 1'b1;
     end
@@ -175,7 +175,7 @@ module dcache (
   end
 
     //data caches flip-flops logic
-  assign atomicWEN = dcif.dmemWEN & (cif.datomic ? success : 1'b1);
+  assign atomicWEN = dcif.dmemWEN & (dcif.datomic ? success : 1'b1);
   assign cacheWEN = ~flushing & (ccdhit ? atomicWEN : ~cif.dwait & cif.dREN);
   always_comb
   begin
