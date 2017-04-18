@@ -40,7 +40,7 @@ module dcache (
   word_t srcsel;                //source select for cache write
     //cache to mem select
   logic cacheWEN;
-  word_t cacheaddr, dpaddr;     //address select variables
+  word_t cacheaddr, dpaddr, fladdr;     //address select variables
 
   //multicore variables
     //coherence signal
@@ -128,7 +128,7 @@ module dcache (
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
-  assign sameaddr = cif.daddr == cif.ccsnoopaddr;
+  assign sameaddr = fladdr == cif.ccsnoopaddr;
 
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
@@ -157,6 +157,7 @@ module dcache (
   assign dpaddr = flushing ? '0 : {dcif.dmemaddr[31:3], cublof, 2'b00};
   //assign cif.daddr = cif.dREN ? dpaddr : cacheaddr;
   assign cif.daddr = cif.dWEN ? cacheaddr : dpaddr;
+  assign fladdr = {dcbuf[flnum[3:1]][flnum[0]].dctag, flnum[3:1], cublof, 2'b00};
 
     //load link register
   always_comb

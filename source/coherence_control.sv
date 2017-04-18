@@ -26,9 +26,14 @@ module coherence_control (
   // busRead and busReadX registers
   logic [1:0] busRd, busRdX;
 
+  // serving cache addr register
+  word_t serveaddr;
+  word_t daddr0, daddr1;
+
   // state machine state names
-  typedef enum logic [2:0] {
-    CCREQ, CCARB, CCSNP, CCCTR, CCCTC, CCRTC, CCERR0, CCERR1
+  typedef enum logic [3:0] {
+    CCREQ, CCARB, CCSNP, CCCTR1, CCCTR2, CCCTC1, CCCTC2, CCRTC1, CCRTC2, CCERR9,
+    CCERR10, CCERR11, CCERR12, CCERR13, CCERR14, CCERR15
   } cc_state_t;
 
   // state machine
@@ -42,6 +47,9 @@ module coherence_control (
     if (nRST == 0) begin
       iserve <= 1'b0;
       dserve <= 1'b0;
+      serveaddr <= '0;
+      daddr0 <= '0;
+      daddr1 <= '0;
     // iserve change
     end else if (state == CCREQ && c.ramstate == FREE) begin
       if (c.iREN[0] && ~c.iREN[1]) iserve <= 1'b0;
@@ -49,22 +57,53 @@ module coherence_control (
       //else if (c.iREN[0] && c.iREN[1]) iserve <= iserve + 1;
       else iserve <= iserve;
       dserve <= dserve;
+      serveaddr <= serveaddr;
+      daddr0 <= daddr0;
+      daddr1 <= daddr1;
     end else if (state == CCREQ && c.ramstate == ACCESS) begin
       if (c.iREN[0] && c.iREN[1]) iserve <= iserve + 1;
       else iserve <= iserve;
       dserve <= dserve;
+      serveaddr <= serveaddr;
+      daddr0 <= daddr0;
+      daddr1 <= daddr1;
     // dserve change
     end else if (state == CCARB) begin
-      if (c.dWEN[0] && ~c.cctrans[0]) dserve <= 1'b0;
-      else if (c.dWEN[1] && ~c.cctrans[1]) dserve <= 1'b1;
-      else if (c.cctrans[0] && c.ccwrite[0]) dserve <= 1'b0;
-      else if (c.cctrans[1] && c.ccwrite[1]) dserve <= 1'b1;
-      else if (c.cctrans[0]) dserve <= 1'b0;
-      else dserve <= 1'b1;
+      if (c.dWEN[0] && ~c.cctrans[0]) begin
+        dserve <= 1'b0;
+        serveaddr <= c.daddr[0];
+      end else if (c.dWEN[1] && ~c.cctrans[1]) begin
+        dserve <= 1'b1;
+        serveaddr <= c.daddr[1];
+      end else if (c.cctrans[0] && c.ccwrite[0]) begin
+        dserve <= 1'b0;
+        serveaddr <= c.daddr[0];
+      end else if (c.cctrans[1] && c.ccwrite[1]) begin
+        dserve <= 1'b1;
+        serveaddr <= c.daddr[1];
+      end else if (c.cctrans[0]) begin
+        dserve <= 1'b0;
+        serveaddr <= c.daddr[0];
+      end else begin
+        dserve <= 1'b1;
+        serveaddr <= c.daddr[1];
+      end
+      daddr0 <= c.daddr[0];
+      daddr1 <= c.daddr[1];
       iserve <= iserve;
+    end else if (state == CCCTR1 || state == CCCTC1 || state == CCRTC1) begin
+      if (c.ramstate == ACCESS) serveaddr <= serveaddr + 4;
+      else serveaddr <= serveaddr;
+      iserve <= iserve;
+      dserve <= dserve;
+      daddr0 <= daddr0;
+      daddr1 <= daddr1;
     end else begin
       iserve <= iserve;
       dserve <= dserve;
+      serveaddr <= serveaddr;
+      daddr0 <= daddr0;
+      daddr1 <= daddr1;
     end
   end
 
@@ -93,23 +132,37 @@ module coherence_control (
         else nxstate = state;
       end
       CCARB: begin
-        if (c.dWEN[0] || c.dWEN[1]) nxstate = CCCTR;
+        if (c.dWEN[0] || c.dWEN[1]) nxstate = CCCTR1;
         else nxstate = CCSNP;
       end
       CCSNP: begin
-        if (c.ccwrite[~dserve]) nxstate = CCCTC;
-        else nxstate = CCRTC;
+        if (c.ccwrite[~dserve]) nxstate = CCCTC1;
+        else nxstate = CCRTC1;
       end
-      CCCTR: begin
+      CCCTR1: begin
+        if (c.ramstate == ACCESS || ~c.dWEN[dserve]) nxstate = CCCTR2;
+        else nxstate = state;
+      end
+      CCCTR2: begin
         if (~c.dWEN[dserve]) nxstate = CCREQ;
         else nxstate = state;
       end
-      CCCTC: begin
+      CCCTC1: begin
+        if (c.ramstate == ACCESS || (~c.dWEN[dserve] && ~c.dREN[dserve]))
+          nxstate = CCCTC2;
+        else nxstate = state;
+      end
+      CCCTC2: begin
         if (~c.dWEN[dserve] && ~c.dREN[dserve])
           nxstate = CCREQ;
         else nxstate = state;
       end
-      CCRTC: begin
+      CCRTC1: begin
+        if (c.ramstate == ACCESS || (~c.dWEN[dserve] && ~c.dREN[dserve]))
+          nxstate = CCRTC2;
+        else nxstate = state;
+      end
+      CCRTC2: begin
         if (~c.dWEN[dserve] && ~c.dREN[dserve]) nxstate = CCREQ;
         else nxstate = state;
       end
@@ -177,19 +230,19 @@ module coherence_control (
         c.ccwait = '1;
         if (busRdX[0] && busRdX[1] && c.daddr[0] != c.daddr[1]) begin
           c.ccinv = '1;
-          c.ccsnoopaddr[0] = c.daddr[1];
-          c.ccsnoopaddr[1] = c.daddr[0];
+          c.ccsnoopaddr[0] = daddr1;
+          c.ccsnoopaddr[1] = daddr0;
         end else begin
           c.ccinv[dserve] = 1'b0;
           c.ccinv[~dserve] = busRdX[dserve];
-          c.ccsnoopaddr[0] = c.daddr[dserve];
-          c.ccsnoopaddr[1] = c.daddr[dserve];
+          c.ccsnoopaddr[0] = serveaddr;
+          c.ccsnoopaddr[1] = serveaddr;
         end
       end
-      CCCTR: begin
+      CCCTR1: begin
         c.ramWEN = c.dWEN[dserve];
         c.ramREN = 1'b0;
-        c.ramaddr = c.daddr[dserve];
+        c.ramaddr = serveaddr;
         c.ramstore = c.dstore[dserve];
         c.iwait = '1;
         c.dwait[dserve] = (c.ramstate != ACCESS);
@@ -198,13 +251,28 @@ module coherence_control (
         c.dload = '0;
         c.ccwait = '1;
         c.ccinv = '0;
-        c.ccsnoopaddr[0] = c.daddr[dserve];
-        c.ccsnoopaddr[1] = c.daddr[dserve];
+        c.ccsnoopaddr[0] = serveaddr;
+        c.ccsnoopaddr[1] = serveaddr;
       end
-      CCCTC: begin
+      CCCTR2: begin
+        c.ramWEN = c.dWEN[dserve];
+        c.ramREN = 1'b0;
+        c.ramaddr = serveaddr;
+        c.ramstore = c.dstore[dserve];
+        c.iwait = '1;
+        c.dwait[dserve] = (c.ramstate != ACCESS);
+        c.dwait[~dserve] = 1'b1;
+        c.iload = '0;
+        c.dload = '0;
+        c.ccwait = '1;
+        c.ccinv = '0;
+        c.ccsnoopaddr[0] = serveaddr;
+        c.ccsnoopaddr[1] = serveaddr;
+      end
+      CCCTC1: begin
         c.ramWEN = c.dREN[dserve];
         c.ramREN = 1'b0;
-        c.ramaddr = c.daddr[dserve];
+        c.ramaddr = serveaddr;
         c.ramstore = c.dstore[~dserve];
         c.iwait = '1;
         c.dwait[0] = (c.ramstate != ACCESS);
@@ -215,13 +283,30 @@ module coherence_control (
         c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
         c.ccinv[~dserve] = busRdX[dserve];
-        c.ccsnoopaddr[0] = c.daddr[dserve];
-        c.ccsnoopaddr[1] = c.daddr[dserve];
+        c.ccsnoopaddr[0] = serveaddr;
+        c.ccsnoopaddr[1] = serveaddr;
       end
-      CCRTC: begin
+      CCCTC2: begin
+        c.ramWEN = c.dREN[dserve];
+        c.ramREN = 1'b0;
+        c.ramaddr = serveaddr;
+        c.ramstore = c.dstore[~dserve];
+        c.iwait = '1;
+        c.dwait[0] = (c.ramstate != ACCESS);
+        c.dwait[1] = (c.ramstate != ACCESS);
+        c.iload = '0;
+        c.dload[dserve] = c.dstore[~dserve];
+        c.dload[~dserve] = '0;
+        c.ccwait = '1;
+        c.ccinv[dserve] = 1'b0;
+        c.ccinv[~dserve] = busRdX[dserve];
+        c.ccsnoopaddr[0] = serveaddr;
+        c.ccsnoopaddr[1] = serveaddr;
+      end
+      CCRTC1: begin
         c.ramWEN = 1'b0;
         c.ramREN = c.dREN[dserve];
-        c.ramaddr = c.daddr[dserve];
+        c.ramaddr = serveaddr;
         c.ramstore = '0;
         c.iwait = '1;
         c.dwait[dserve] = (c.ramstate != ACCESS);
@@ -232,8 +317,25 @@ module coherence_control (
         c.ccwait = '1;
         c.ccinv[dserve] = 1'b0;
         c.ccinv[~dserve] = busRdX[dserve];
-        c.ccsnoopaddr[0] = c.daddr[dserve];
-        c.ccsnoopaddr[1] = c.daddr[dserve];
+        c.ccsnoopaddr[0] = serveaddr;
+        c.ccsnoopaddr[1] = serveaddr;
+      end
+      CCRTC2: begin
+        c.ramWEN = 1'b0;
+        c.ramREN = c.dREN[dserve];
+        c.ramaddr = serveaddr;
+        c.ramstore = '0;
+        c.iwait = '1;
+        c.dwait[dserve] = (c.ramstate != ACCESS);
+        c.dwait[~dserve] = 1'b1;
+        c.iload = '0;
+        c.dload[dserve] = c.ramload;
+        c.dload[~dserve] = '0;
+        c.ccwait = '1;
+        c.ccinv[dserve] = 1'b0;
+        c.ccinv[~dserve] = busRdX[dserve];
+        c.ccsnoopaddr[0] = serveaddr;
+        c.ccsnoopaddr[1] = serveaddr;
       end
       default: begin
         c.ramWEN = 1'b0;
