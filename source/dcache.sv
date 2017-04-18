@@ -80,7 +80,8 @@ module dcache (
 
   //data caches configuration -------------------------------------
     //MSI state generation
-  assign msi = msi_t'({dcbuf[ind][waysel].dcvalid, dcbuf[ind][waysel].dcdirty});
+  assign msi = addr.dcpctag != dcbuf[ind][waysel].dctag ? I1 :
+               msi_t'({dcbuf[ind][waysel].dcvalid, dcbuf[ind][waysel].dcdirty});
 
     //msi signals to bus
   always_comb
@@ -88,7 +89,7 @@ module dcache (
     cif.cctrans = 0;
     cif.ccwrite = 0;
     if (~dcif.flushed & ~ccend) begin
-      if (msi == I1 | msi == I2 | addr.dcpctag != dcbuf[ind][waysel].dctag) begin
+      if (msi == I1 | msi == I2) begin
         if (~cif.ccwait & dmemREN) begin
           cif.cctrans = 1;
           cif.ccwrite = 0;
@@ -115,7 +116,7 @@ module dcache (
   assign ccing = cif.ccwait | ~ccend & (cif.cctrans | cif.ccwrite);
 
     //set all msi state transition condition
-  assign MStoI = invalid | (cif.ccwait & cif.ccinv);
+  assign MStoI = (invalid | (cif.ccwait & cif.ccinv)) & (msi == S || msi == M);
   assign MtoS = msi == M & cif.ccwait & ~cif.ccinv;
 
     //block datapath request after halt

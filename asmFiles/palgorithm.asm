@@ -13,7 +13,7 @@
 # main function does something ugly but demonstrates beautifully
 mainp0:
   push  $ra                 # save return address
-  ori   $s0, $zero, 256     # main loop index, do 256 times
+  ori   $s0, $zero, 2     # main loop index, do 256 times
   ori   $s1, $zero, 0       # sum of 256 random numbers
 p0loop:
   # pre-processing:
@@ -73,7 +73,7 @@ bsp:
 # main function does something ugly but demonstrates beautifully
 mainp1:
   push  $ra                 # save return address
-  ori   $s0, $zero, 256     # main loop index, do 256 times
+  ori   $s0, $zero, 2     # main loop index, do 256 times
   ori   $s1, $zero, 0xBEEF  # initial seed
 p1loop:
   # pre-processing: 1. get new random number
