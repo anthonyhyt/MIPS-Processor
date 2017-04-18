@@ -87,8 +87,8 @@ module dcache (
   begin
     cif.cctrans = 0;
     cif.ccwrite = 0;
-    if (~dcif.flushed) begin
-      if (msi == I1 | msi == I2) begin
+    if (~dcif.flushed & ~ccend) begin
+      if (msi == I1 | msi == I2 | addr.dcpctag != dcbuf[ind][waysel].dctag) begin
         if (~cif.ccwait & dmemREN) begin
           cif.cctrans = 1;
           cif.ccwrite = 0;
@@ -133,7 +133,7 @@ module dcache (
   assign dcif.dhit = ccdhit;
 
     //cache store source select
-  assign srcsel = dhit ? dcif.dmemstore : cif.dload;
+  assign srcsel = ccdhit ? dcif.dmemstore : cif.dload;
 
     //word_t in cache select
   assign ind = flushing ? flnum[3:1] : addr.dcpcind;
