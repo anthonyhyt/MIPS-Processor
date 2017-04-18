@@ -1,6 +1,7 @@
 module dcache_cu (
   input logic CLK, nRST,
-  input logic dirty, sameaddr, snoopable,
+  input logic dirty, sameaddr,
+  output logic snoopable,
   input logic dhit, dwait,
   input logic dmemREN, dmemWEN, flush,      //signal from dp
   input logic ccwait, ccwrite, ccinv,       //signal from mem

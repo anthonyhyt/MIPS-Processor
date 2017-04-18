@@ -76,8 +76,10 @@ module dcache (
   );
 
   //variable cast -------------------------------------------------
-  dc_pc_t addr;
+  dc_pc_t addr, snpaddr;
   assign addr = dc_pc_t'(cif.ccwait ? cif.ccsnoopaddr : dcif.dmemaddr);
+  assign snpaddr = dc_pc_t'(cif.ccsnoopaddr);
+  assign dapaddr = dc_pc_t'(dcif.dmemaddr);
 
   //data caches configuration -------------------------------------
     //MSI state generation
@@ -139,15 +141,15 @@ module dcache (
   assign srcsel = ccdhit ? dcif.dmemstore : cif.dload;
 
     //word_t in cache select
-  assign ind = flushing ? flnum[3:1] : addr.dcpcind;
-  assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0:lru[ind]);
+  assign ind = flushing ? ((cif.ccwait & snoopable) ? snpaddr.dcpcind : flnum[3:1]) : addr.dcpcind;
+  assign waysel = flushing ? ((cif.ccwait & snoopable) ? ~dhit0 : flnum[0]) : (dhit ? ~dhit0:lru[ind]);
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
   assign dcif.dmemload = dcif.datomic & dmemWEN ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
-  assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
+  assign cif.dstore = dcbuf[ind][waysel].dcblock[blksel];
 
     //memory address select
   assign cacheaddr = {dcbuf[ind][waysel].dctag, ind, cublof, 2'b00};//write back use address in cache tag
