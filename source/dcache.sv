@@ -76,7 +76,7 @@ module dcache (
   );
 
   //variable cast -------------------------------------------------
-  dc_pc_t addr, snpaddr;
+  dc_pc_t addr, snpaddr, dapaddr;
   assign addr = dc_pc_t'(cif.ccwait ? cif.ccsnoopaddr : dcif.dmemaddr);
   assign snpaddr = dc_pc_t'(cif.ccsnoopaddr);
   assign dapaddr = dc_pc_t'(dcif.dmemaddr);
@@ -128,7 +128,8 @@ module dcache (
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
-  assign sameaddr = cif.daddr == cif.ccsnoopaddr;
+  //assign sameaddr = cif.daddr == cif.ccsnoopaddr;
+  assign sameaddr = 0;
 
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
@@ -141,15 +142,34 @@ module dcache (
   assign srcsel = ccdhit ? dcif.dmemstore : cif.dload;
 
     //word_t in cache select
-  assign ind = flushing ? ((cif.ccwait & snoopable) ? snpaddr.dcpcind : flnum[3:1]) : addr.dcpcind;
-  assign waysel = flushing ? ((cif.ccwait & snoopable) ? ~dhit0 : flnum[0]) : (dhit ? ~dhit0:lru[ind]);
+  /*
+  always_comb begin
+    ind = dapaddr.dcpcind;
+    if (flushing) begin
+      if (cif.ccwait & snoopable)
+        ind = snpaddr.dcpcind;
+      else
+        ind = flnum[3:1];
+    end else begin
+      if (cif.ccwait)
+        ind = snpaddr.dcpcind;
+      else
+        ind = dapaddr.dcpcind;
+    end
+  end
+  */
+  //assign ind = flushing ? ((cif.ccwait & snoopable) ? snpaddr.dcpcind : flnum[3:1]) : addr.dcpcind;
+  assign ind = flushing ? flnum[3:1] : addr.dcpcind;
+  //assign waysel = flushing ? ((cif.ccwait & snoopable) ? ~dhit0 : flnum[0]) : (dhit ? ~dhit0:lru[ind]);
+  assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0:lru[ind]);
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
   assign dcif.dmemload = dcif.datomic & dmemWEN ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
-  assign cif.dstore = dcbuf[ind][waysel].dcblock[blksel];
+  //assign cif.dstore = dcbuf[ind][waysel].dcblock[blksel];
+  assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
 
     //memory address select
   assign cacheaddr = {dcbuf[ind][waysel].dctag, ind, cublof, 2'b00};//write back use address in cache tag
