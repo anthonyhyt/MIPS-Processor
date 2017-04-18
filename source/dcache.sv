@@ -128,8 +128,7 @@ module dcache (
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
-  //assign sameaddr = cif.daddr == cif.ccsnoopaddr;
-  assign sameaddr = 0;
+  assign sameaddr = cif.daddr == cif.ccsnoopaddr;
 
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
@@ -142,39 +141,22 @@ module dcache (
   assign srcsel = ccdhit ? dcif.dmemstore : cif.dload;
 
     //word_t in cache select
-  /*
-  always_comb begin
-    ind = dapaddr.dcpcind;
-    if (flushing) begin
-      if (cif.ccwait & snoopable)
-        ind = snpaddr.dcpcind;
-      else
-        ind = flnum[3:1];
-    end else begin
-      if (cif.ccwait)
-        ind = snpaddr.dcpcind;
-      else
-        ind = dapaddr.dcpcind;
-    end
-  end
-  */
-  //assign ind = flushing ? ((cif.ccwait & snoopable) ? snpaddr.dcpcind : flnum[3:1]) : addr.dcpcind;
-  assign ind = flushing ? flnum[3:1] : addr.dcpcind;
-  //assign waysel = flushing ? ((cif.ccwait & snoopable) ? ~dhit0 : flnum[0]) : (dhit ? ~dhit0:lru[ind]);
-  assign waysel = flushing ? flnum[0] : (dhit ? ~dhit0:lru[ind]);
+  assign ind = flushing ? ((cif.ccwait & snoopable) ? snpaddr.dcpcind : flnum[3:1]) : addr.dcpcind;
+  assign waysel = flushing ? ((cif.ccwait & snoopable) ? ~dhit0 : flnum[0]) : (dhit ? ~dhit0 :
+                  (dcbuf[ind][0].dcvalid & dcbuf[ind][1].dcvalid ? lru[ind] : dcbuf[ind][0].dcvalid));
   assign blksel = dhit ? addr.dcpcblof : cublof;
 
     //data load to datapath select
   assign dcif.dmemload = dcif.datomic & dmemWEN ? word_t'(success) : dcbuf[ind][~dhit0].dcblock[addr.dcpcblof];
 
     //data store to mem select
-  //assign cif.dstore = dcbuf[ind][waysel].dcblock[blksel];
-  assign cif.dstore = dcbuf[ind][waysel].dcblock[cublof];
+  assign cif.dstore = dcbuf[ind][waysel].dcblock[blksel];
 
     //memory address select
   assign cacheaddr = {dcbuf[ind][waysel].dctag, ind, cublof, 2'b00};//write back use address in cache tag
   assign dpaddr = flushing ? '0 : {dcif.dmemaddr[31:3], cublof, 2'b00};
-  assign cif.daddr = cif.dREN ? dpaddr : cacheaddr;
+  //assign cif.daddr = cif.dREN ? dpaddr : cacheaddr;
+  assign cif.daddr = cif.dWEN ? cacheaddr : dpaddr;
 
     //load link register
   always_comb

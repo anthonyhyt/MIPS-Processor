@@ -13,11 +13,11 @@
 # main function does something ugly but demonstrates beautifully
 mainp0:
   push  $ra                 # save return address
-  ori   $s0, $zero, 2     # main loop index, do 256 times
+  ori   $s0, $zero, 256     # main loop index, do 256 times
   ori   $s1, $zero, 0       # sum of 256 random numbers
 p0loop:
   # pre-processing:
-p0check: 
+p0check:
   # check the stack pointer
   ori   $t1, $zero, bsp     # obtain buffer stack pointer addr
   lw    $t0, 0($t1)         # obtain buffer stack pointer value
@@ -48,7 +48,7 @@ p0check:
   addi  $s0, $s0, -1        # index <= index - 1
   bne   $s0, $zero, p0loop
   # calculate average
-  or    $a0, $zero, $s1     # move sum to argument 
+  or    $a0, $zero, $s1     # move sum to argument
   ori   $a1, $zero, 256     # move denominator to argument
   jal   divide
   ori   $t1, $zero, resavg  # obtain result average addr
@@ -73,14 +73,14 @@ bsp:
 # main function does something ugly but demonstrates beautifully
 mainp1:
   push  $ra                 # save return address
-  ori   $s0, $zero, 2     # main loop index, do 256 times
+  ori   $s0, $zero, 256     # main loop index, do 256 times
   ori   $s1, $zero, 0xBEEF  # initial seed
 p1loop:
   # pre-processing: 1. get new random number
   or    $a0, $zero, $s1     # move previous random number to argument register
   jal   crc32
   or    $s1, $zero, $v0     # move new random number to register
-p1check: 
+p1check:
   # check the stack pointer
   ori   $t1, $zero, bsp     # obtain buffer stack pointer addr
   lw    $t0, 0($t1)         # obtain buffer stack pointer value
@@ -147,7 +147,7 @@ bufpsh:
   jr    $ra
 
 # buffer pop
-# bufpop returns ($v0) 
+# bufpop returns ($v0)
 bufpop:
   ori   $t1, $zero, bsp     # obtain buffer stack pointer addr
   lw    $t0, 0($t1)         # obtain buffer stack pointer value

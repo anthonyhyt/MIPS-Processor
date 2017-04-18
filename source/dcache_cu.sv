@@ -13,7 +13,7 @@ module dcache_cu (
 );
 
   typedef enum logic [3:0] {
-    IDLE, WB1, WB2, WB3, WB4, WB5, WB6, READ1, READ2,
+    IDLE, WB1, WB2, WB3, WB4, READ1, READ2,
     FLSTART, FLUSH1, FLUSH2, FLCT1, FLCT2, FLPRE, HALT
   } state_t;
 
@@ -107,7 +107,8 @@ module dcache_cu (
       READ1:   nxtstate = ~dwait ? READ2 : state;
       READ2:   nxtstate = ~dwait ? IDLE : state;
       //flush and halt operation
-      FLSTART: nxtstate = flctout != 5'h10 ? (dirty ? FLPRE : FLCT1) : HALT;
+      FLSTART: nxtstate = flctout != 5'h10 ? (dirty ? FLPRE :
+               (ccwait ? state :  FLCT1)) : HALT;
       FLCT1:   nxtstate = FLSTART;
       FLPRE:   nxtstate = sameaddr & ccwait ? FLUSH1 : state;
       FLUSH1:  nxtstate = ~dwait ? FLUSH2 : state;
