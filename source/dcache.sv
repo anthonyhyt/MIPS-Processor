@@ -47,6 +47,7 @@ module dcache (
   logic pccwait, ccend;
   logic MStoI, MtoS;
   logic ccing, ccdhit;
+  logic sameaddr, snoopable;
   msi_t msi, msireg;
 
     //synchronization signal
@@ -64,7 +65,7 @@ module dcache (
   );
   dcache_cu DCU (
     CLK, nRST,
-    dirty,
+    dirty, sameaddr, snoopable,
     dhit, cif.dwait,
     dcif.dmemREN, dcif.dmemWEN, dcif.halt,
     cif.ccwait, cif.ccwrite, cif.ccinv,
@@ -125,6 +126,7 @@ module dcache (
 
     //dirties signal generation
   assign dirty = dcbuf[ind][waysel].dcdirty & dcbuf[ind][waysel].dcvalid;
+  assign sameaddr = cif.daddr == cif.ccsnoopaddr;
 
     //dhit generation
   assign dhit0 = (addr.dcpctag == dcbuf[ind][0].dctag) & dcbuf[ind][0].dcvalid;
@@ -149,8 +151,8 @@ module dcache (
 
     //memory address select
   assign cacheaddr = {dcbuf[ind][waysel].dctag, ind, cublof, 2'b00};//write back use address in cache tag
-  assign dpaddr = {dcif.dmemaddr[31:3], cublof, 2'b00};             //load value use address from datapath
-  assign cif.daddr = cif.dWEN ? cacheaddr : dpaddr;
+  assign dpaddr = flushing ? '0 : {dcif.dmemaddr[31:3], cublof, 2'b00};
+  assign cif.daddr = cif.dREN ? dpaddr : cacheaddr;
 
     //load link register
   always_comb

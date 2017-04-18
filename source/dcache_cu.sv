@@ -1,6 +1,6 @@
 module dcache_cu (
   input logic CLK, nRST,
-  input logic dirty,
+  input logic dirty, sameaddr, snoopable,
   input logic dhit, dwait,
   input logic dmemREN, dmemWEN, flush,      //signal from dp
   input logic ccwait, ccwrite, ccinv,       //signal from mem
@@ -12,8 +12,8 @@ module dcache_cu (
 );
 
   typedef enum logic [3:0] {
-    IDLE, WB1, WB2, WB3, WB4, READ1, READ2,
-    FLSTART, FLUSH1, FLUSH2, FLCT, HALT
+    IDLE, WB1, WB2, WB3, WB4, WB5, WB6, READ1, READ2,
+    FLSTART, FLUSH1, FLUSH2, FLCT1, FLCT2, FLPRE, HALT
   } state_t;
 
   state_t state, nxtstate;
@@ -32,6 +32,7 @@ module dcache_cu (
     halt = 1'b0;
     blof = 1'b0;
     invalid = 1'b0;
+    snoopable = 1'b0;
     casez(state)
       //normal operation
       IDLE: begin
@@ -61,6 +62,7 @@ module dcache_cu (
       end
       //flush and halt operation
       FLSTART: begin
+        snoopable = 1'b1;
         flushing = 1'b1;
       end
       FLUSH1: begin
@@ -73,9 +75,19 @@ module dcache_cu (
         blof = 1'b1;
         invalid = 1'b1;
       end
-      FLCT: begin
+      FLCT1: begin
+        snoopable = 1'b1;
         flushing = 1'b1;
         flctup = 1'b1;
+      end
+      FLCT2: begin
+        flushing = 1'b1;
+        flctup = 1'b1;
+      end
+      FLPRE: begin
+        snoopable = 1'b1;
+        flushing = 1'b1;
+        dWEN = 1'b1;
       end
       HALT: halt = 1'b1;
     endcase
@@ -94,10 +106,12 @@ module dcache_cu (
       READ1:   nxtstate = ~dwait ? READ2 : state;
       READ2:   nxtstate = ~dwait ? IDLE : state;
       //flush and halt operation
-      FLSTART: nxtstate = flctout != 5'h10 ? (dirty ? FLUSH1 : FLCT) : HALT;
+      FLSTART: nxtstate = flctout != 5'h10 ? (dirty ? FLPRE : FLCT1) : HALT;
+      FLCT1:   nxtstate = FLSTART;
+      FLPRE:   nxtstate = sameaddr & ccwait ? FLUSH1 : state;
       FLUSH1:  nxtstate = ~dwait ? FLUSH2 : state;
-      FLUSH2:  nxtstate = ~dwait ? FLCT : state;
-      FLCT:    nxtstate = FLSTART;
+      FLUSH2:  nxtstate = ~dwait ? FLCT2 : state;
+      FLCT2:   nxtstate = FLSTART;
       HALT:    nxtstate = state;
       default: nxtstate = IDLE;
     endcase
